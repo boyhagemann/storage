@@ -2,14 +2,20 @@
 
 use Boyhagemann\Storage\Exceptions\ResourceNotFound;
 use Boyhagemann\Storage\Exceptions\ResourceWithVersionNotFound;
-use Boyhagemann\Storage\Drivers\Mysql as MysqlDriver;
+use Boyhagemann\Storage\Drivers\MysqlRecord;
+use Boyhagemann\Storage\Drivers\MysqlEntity;
 
-class MysqlTest extends PHPUnit_Framework_TestCase
+class MysqlQueryTest extends PHPUnit_Framework_TestCase
 {
     /**
      * @var \Boyhagemann\Storage\Contracts\Record
      */
     protected $driver;
+
+    /**
+     * @var MysqlEntity
+     */
+    protected $entityRepository;
 
     public function setUp()
     {
@@ -24,26 +30,28 @@ class MysqlTest extends PHPUnit_Framework_TestCase
         $pdo->exec($sql);
 
         // Create the driver
-        $this->driver = new MysqlDriver($pdo);
+        $this->entityRepository = new MysqlEntity($pdo);
+        $this->driver = new MysqlRecord($pdo);
     }
 
-    public function testFindRecordsShouldThrowExceptionWhenProvidedWithNonExistingResource()
+    public function testGetNonExistingEntityThrowsException()
     {
         $this->expectException(ResourceNotFound::class);
 
-        $this->driver->findRecords('non-existing-resource');
+        $this->entityRepository->get('non-existing-resource');
     }
 
-    public function testFindRecordsShouldThrowExceptionWhenProvidedWithNonExistingResourceVersion()
+    public function testGetNonExistingEntityVersionThrowsException()
     {
         $this->expectException(ResourceWithVersionNotFound::class);
 
-        $this->driver->findRecords('resource1', 222);
+        $this->entityRepository->get('resource1', 222);
     }
 
     public function testFindLatestRecords()
     {
-        $result = $this->driver->findRecords('resource1', null, [], []);
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->find($entity, [], []);
 
         $this->assertSame([
             [
@@ -56,7 +64,8 @@ class MysqlTest extends PHPUnit_Framework_TestCase
 
     public function testFindRecordsWithVersion()
     {
-        $result = $this->driver->findRecords('resource1', null, [], [
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->find($entity, [], [
             'version' => 1
         ]);
 
@@ -76,7 +85,8 @@ class MysqlTest extends PHPUnit_Framework_TestCase
 
     public function testFindRecordsWithVersionAndQuery()
     {
-        $result = $this->driver->findRecords('resource1', null, [
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->find($entity, [
             ['field2', '=', 'bar'],
         ], [
             'version' => 1
@@ -93,7 +103,8 @@ class MysqlTest extends PHPUnit_Framework_TestCase
 
     public function testFetchLatestRecord()
     {
-        $result = $this->driver->firstRecord('resource1', null, [
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->first($entity, [
             ['field3', '=', 'id1']
         ]);
 
@@ -106,7 +117,8 @@ class MysqlTest extends PHPUnit_Framework_TestCase
 
     public function testFetchRecordWithVersion()
     {
-        $result = $this->driver->firstRecord('resource1', 1, [
+        $entity = $this->entityRepository->get('resource1', 1);
+        $result = $this->driver->first($entity, [
             ['field3', '=', 'id2']
         ], [
             'version' => 1
@@ -121,12 +133,12 @@ class MysqlTest extends PHPUnit_Framework_TestCase
 
     public function testFetchDeletedRecordWithResourceVersion()
     {
-        $result = $this->driver->firstRecord('resource1', null, [
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->first($entity, [
             ['field3', '=', 'id2']
         ]);
 
         $this->assertSame(null, $result);
     }
-
 
 }
