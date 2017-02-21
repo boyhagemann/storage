@@ -34,7 +34,28 @@ class MysqlMutationTest extends PHPUnit_Framework_TestCase
     public function testCreateRecord()
     {
         $entity = $this->entityRepository->get('resource1');
-        $this->driver->create($entity, []);
+        $this->driver->create($entity, [
+            'id' => 'id2',
+            'name' => 'second',
+            'label' => 'Second record'
+        ]);
+
+        $expected = [
+            [
+                'id' => 'id1',
+                'name' => 'test',
+                'label' => '456',
+            ],
+            [
+                'id' => 'id2',
+                'name' => 'second',
+                'label' => 'Second record',
+            ],
+        ];
+
+        $this->assertSame($expected, $this->driver->find($entity, [], [
+            'order' => 'id',
+        ]));
     }
 
 

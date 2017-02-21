@@ -71,7 +71,7 @@ class MysqlEntity implements Contracts\EntityRepository
     {
         $q = $this->builder->select()
             ->from('_resource')
-            ->where('name = ?', $id)
+            ->where('id = ?', $id)
             ->orderBy('`version`', 'desc');
 
         if($version) {
@@ -99,7 +99,7 @@ class MysqlEntity implements Contracts\EntityRepository
             throw new \Exception(sprintf('No fields found for resource "%s", version "%s"', $resource, $version));
         }
 
-        return new Entity($resource['_id'], $resource['version'], $resource['name'], $fields);
+        return new Entity($resource['uuid'], $resource['version'], $resource['id'], $fields);
     }
 
     /**
@@ -113,11 +113,12 @@ class MysqlEntity implements Contracts\EntityRepository
         $version = isset($options['version']) ? $options['version'] : null;
 
         $q = $this->builder->select()
-            ->field('`key`', '_id')
+            ->field('`id`')
             ->field($this->buildFieldSelectQuery('name', $version), 'name')
             ->field($this->buildFieldSelectQuery('order', $version), 'order')
+            ->field($this->buildFieldSelectQuery('type', $version), 'type')
             ->from('f', '_field')
-            ->groupBy('`key`')
+            ->groupBy('`id`')
             ->orderBy('`order`');
 
         foreach ($query as $statement) {
@@ -169,7 +170,7 @@ class MysqlEntity implements Contracts\EntityRepository
         $q = $this->builder->select()
             ->field(sprintf('`%s`', $name))
             ->from('_field')
-            ->where('`key` = f.`key`')
+            ->where('`id` = f.`id`')
             ->orderBy('`version`', 'desc')
             ->limit(1);
 

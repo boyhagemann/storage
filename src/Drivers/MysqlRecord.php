@@ -4,6 +4,7 @@ use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Contracts\Entity;
 use Kir\MySQL\Builder\RunnableSelect;
 use Kir\MySQL\Databases\MySQL as Builder;
+use Ramsey\Uuid\Uuid;
 use PDO;
 
 class MysqlRecord implements Contracts\Record
@@ -47,7 +48,7 @@ class MysqlRecord implements Contracts\Record
         $whereDeleted = $this->builder->select()
             ->field('deleted')
             ->from('_record')
-            ->where('`key` = r.`key`')
+            ->where('`id` = r.`id`')
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
@@ -60,11 +61,11 @@ class MysqlRecord implements Contracts\Record
         $q = $this->builder->select()
             ->from('r', '_record')
             ->where(sprintf('(%s) = ?', (string) $whereDeleted), 0)
-            ->groupBy('r.`key`');
+            ->groupBy('r.`id`');
 
         // Build a subquery for every field
         foreach ($entity->fields() as $field) {
-            $fieldQuery = $this->buildValueFieldQuery($field['_id'], $dataVersion);
+            $fieldQuery = $this->buildValueFieldQuery($field['id'], $dataVersion);
             $q->field($fieldQuery, $field['name']);
         }
 
@@ -72,6 +73,22 @@ class MysqlRecord implements Contracts\Record
         foreach ($query as $statement) {
             $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion);
             $q->where(sprintf('(%s) %s ?', (string) $fieldQuery, $statement[1]), $statement[2]);
+        }
+
+        foreach($options as $key => $value) {
+
+            switch($key) {
+
+                case 'order':
+                    $direction = isset($options['direction']) ? $options['direction'] : 'asc';
+                    $q->orderBy($value, $direction);
+                    break;
+
+                case 'limit':
+                    $q->limit($value);
+                    break;
+
+            }
         }
 
         return $q;
@@ -85,7 +102,11 @@ class MysqlRecord implements Contracts\Record
      */
     public function find(Contracts\Entity $entity, Array $query = [], Array $options = [])
     {
-        return $this->buildFindQuery($entity, $query, $options)->fetchRows();
+        $rows = $this->buildFindQuery($entity, $query, $options)->fetchRows();
+        $formatted = array_map(function(Array $row) use ($entity) {
+            return static::format($entity, $row);
+        }, $rows);
+        return $formatted;
     }
 
     /**
@@ -100,6 +121,34 @@ class MysqlRecord implements Contracts\Record
     }
 
     /**
+     * @param Entity $entity
+     * @param array $data
+     * @return array
+     */
+    public static function format(Contracts\Entity $entity, Array $data)
+    {
+        $formatted = [];
+
+        foreach($entity->fields() as $field) {
+
+            $name = $field['name'];
+            $value = array_key_exists($name, $data) ? $data[$name] : ''; // @todo use a default from field
+
+            switch($field['type']) {
+
+                case 'string':
+                    $value = (string) $value;
+                    break;
+            }
+
+            $formatted[$name] = $value;
+        }
+
+        return $formatted;
+    }
+
+
+    /**
      * @param string $key
      * @param int    $version
      * @return RunnableSelect
@@ -109,7 +158,7 @@ class MysqlRecord implements Contracts\Record
         $q =  $this->builder->select()
             ->field('value')
             ->from('_value')
-            ->where('record = r.`key`')
+            ->where('record = r.`id`')
             ->where('field = ?', $key)
             ->orderBy('`version`', 'desc')
             ->limit(1);
@@ -123,7 +172,42 @@ class MysqlRecord implements Contracts\Record
 
     public function create(Contracts\Entity $entity, Array $data, Array $options = [])
     {
-        // TODO: Implement create() method.
+        // Validate the data
+        $id = Uuid::uuid4();
+        $key = Uuid::uuid4();
+
+        // Add a record
+        $this->builder->insert()
+            ->add('uuid', $id)
+            ->add('id', $key)
+            ->add('resource', $entity->name())
+            ->add('version', 1)
+            ->add('deleted', 0)
+            ->into('_record')
+            ->run();
+
+        // Add values for each field
+        foreach($entity->fields() as $field) {
+
+            $value = array_key_exists($field['name'], $data) ? $data[$field['name']] : null;
+
+            switch($field['type']) {
+
+                case 'string':
+                    $value = (string) $value;
+                    break;
+            }
+
+            $this->builder->insert()
+                ->add('uuid', Uuid::uuid4())
+                ->add('record', $key)
+                ->add('field', $field['id'])
+                ->add('version', 1)
+                ->add('value', $value)
+                ->into('_value')
+                ->run();
+        }
+
     }
 
     public function upsert(Contracts\Entity $entity, Array $existing, Array $data, Array $options = [])

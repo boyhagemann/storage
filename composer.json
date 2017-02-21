@@ -8,7 +8,8 @@
     ],
     "require": {
         "rkr/php-mysql-query-builder": "0.1.*",
-        "vlucas/phpdotenv": "~2.4"
+        "vlucas/phpdotenv": "~2.4",
+        "ramsey/uuid": "~3.5"
     },
     "autoload": {
         "psr-4": {
