@@ -34,7 +34,9 @@ class MysqlMutationTest extends PHPUnit_Framework_TestCase
     public function testCreateRecord()
     {
         $entity = $this->entityRepository->get('resource1');
+
         $this->driver->create($entity, [
+            '_id' => 'generated-unique-id',
             'id' => 'id2',
             'name' => 'second',
             'label' => 'Second record'
@@ -42,16 +44,56 @@ class MysqlMutationTest extends PHPUnit_Framework_TestCase
 
         $expected = [
             [
+                '_id' => 'record1',
+                '_version' => 2,
                 'id' => 'id1',
                 'name' => 'test',
                 'label' => '456',
             ],
             [
+                '_id' => 'generated-unique-id',
+                '_version' => 1,
                 'id' => 'id2',
                 'name' => 'second',
                 'label' => 'Second record',
             ],
         ];
+
+        $this->assertSame($expected, $this->driver->find($entity, [], [
+            'order' => 'id',
+        ]));
+    }
+
+    public function testUpdateRecord()
+    {
+        $entity = $this->entityRepository->get('resource1');
+
+        $this->driver->update($entity, 'record1', [
+            'label' => 'Updated'
+        ]);
+
+        $expected = [
+            [
+                '_id' => 'record1',
+                '_version' => 3,
+                'id' => 'id1',
+                'name' => 'test',
+                'label' => 'Updated',
+            ],
+        ];
+
+        $this->assertSame($expected, $this->driver->find($entity, [], [
+            'order' => 'id',
+        ]));
+    }
+
+    public function testDeleteRecord()
+    {
+        $entity = $this->entityRepository->get('resource1');
+
+        $this->driver->delete($entity, 'record1');
+
+        $expected = [];
 
         $this->assertSame($expected, $this->driver->find($entity, [], [
             'order' => 'id',

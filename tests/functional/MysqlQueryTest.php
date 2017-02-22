@@ -55,6 +55,8 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
 
         $this->assertSame([
             [
+                '_id' => 'record1',
+                '_version' => 2,
                 'id' => 'id1',
                 'name' => 'test',
                 'label' => '456',
@@ -71,11 +73,15 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
 
         $this->assertSame([
             [
+                '_id' => 'record1',
+                '_version' => 2,
                 'id' => 'id1',
                 'name' => 'test',
                 'label' => '123',
             ],
             [
+                '_id' => 'record2',
+                '_version' => 2,
                 'id' => 'id2',
                 'name' => 'foo',
                 'label' => 'bar',
@@ -94,6 +100,8 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
 
         $this->assertSame([
             [
+                '_id' => 'record2',
+                '_version' => 2,
                 'id' => 'id2',
                 'name' => 'foo',
                 'label' => 'bar',
@@ -109,6 +117,8 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
         ]);
 
         $this->assertSame([
+            '_id' => 'record1',
+            '_version' => 2,
             'id' => 'id1',
             'name' => 'test',
             'label' => '456',
@@ -125,6 +135,8 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
         ]);
 
         $this->assertSame([
+            '_id' => 'record2',
+            '_version' => 2,
             'id' => 'id2',
             'name' => 'foo',
             'label_old' => 'bar',

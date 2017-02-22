@@ -56,7 +56,8 @@ DELETE FROM `_record`;
 INSERT INTO `_record` (`uuid`, `resource`, `id`, `version`, `deleted`) VALUES
 	('id1', 'resource1', 'record1', 1, 0),
 	('id2', 'resource1', 'record2', 1, 0),
-	('id3', 'resource1', 'record2', 2, 1);
+	('id3', 'resource1', 'record2', 2, 1),
+	('id4', 'resource1', 'record1', 2, 0);
 /*!40000 ALTER TABLE `_record` ENABLE KEYS */;
 
 -- Structuur van  tabel komparu_dev._resource wordt geschreven
