@@ -44,11 +44,15 @@ class MysqlRecord implements Contracts\Record
         // Find the values with an optional version
         $dataVersion = isset($options['version']) ? $options['version'] : null;
 
+        $conditions = isset($options['conditions']) ? $options['conditions'] : [];
+        $conditionWhere = $this->buildWhereForConditions($conditions);
+
         // Build the record deleted where clause
         $whereDeleted = $this->builder->select()
             ->field('deleted')
             ->from('_record')
             ->where('`id` = r.`id`')
+            ->where($conditionWhere)
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
@@ -62,6 +66,7 @@ class MysqlRecord implements Contracts\Record
             ->from('_record')
             ->field('`version`')
             ->where('`id` = r.`id`')
+            ->where($conditionWhere)
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
@@ -71,11 +76,12 @@ class MysqlRecord implements Contracts\Record
             ->field('id', '_id')
             ->field($versionField, '_version')
             ->where(sprintf('(%s) = ?', (string) $whereDeleted), 0)
+            ->where($conditionWhere)
             ->groupBy('r.`id`');
 
         // Build a subquery for every field
         foreach ($entity->fields() as $field) {
-            $fieldQuery = $this->buildValueFieldQuery($field['id'], $dataVersion);
+            $fieldQuery = $this->buildValueFieldQuery($field['id'], $dataVersion, $conditionWhere);
             $q->field($fieldQuery, $field['name']);
         }
 
@@ -89,7 +95,7 @@ class MysqlRecord implements Contracts\Record
                     break;
 
                 default:
-                    $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion);
+                    $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion, $conditionWhere);
                     $q->where(sprintf('(%s) %s ?', (string) $fieldQuery, $statement[1]), $statement[2]);
 
             }
@@ -111,7 +117,18 @@ class MysqlRecord implements Contracts\Record
             }
         }
 
+//        $q->debug();
+
         return $q;
+    }
+
+    /**
+     * @param array $conditions
+     * @return string
+     */
+    protected function buildWhereForConditions(Array $conditions) {
+
+        return sprintf('conditions = "%s" OR conditions IS NULL', json_encode($conditions));
     }
 
     /**
@@ -177,15 +194,17 @@ class MysqlRecord implements Contracts\Record
     /**
      * @param string $key
      * @param int    $version
+     * @param string $conditionWhere
      * @return RunnableSelect
      */
-    protected function buildValueFieldQuery($key, $version = null)
+    protected function buildValueFieldQuery($key, $version = null, $conditionWhere)
     {
         $q =  $this->builder->select()
             ->field('value')
             ->from('_value')
             ->where('record = r.`id`')
             ->where('field = ?', $key)
+            ->where($conditionWhere)
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
@@ -196,32 +215,22 @@ class MysqlRecord implements Contracts\Record
         return $q;
     }
 
-    public function create(Contracts\Entity $entity, Array $data, Array $options = [])
+    public function insert(Contracts\Entity $entity, Array $data, Array $options = [])
     {
         // Validate the data
 
-        // Uuid is unique in is for internal use only
-        $id = Uuid::uuid4();
-
         // Id is fixed and can come from the outside
-        $key = isset($data['_id']) ? $data['_id'] : Uuid::uuid4();
+        $id = isset($data['_id']) ? $data['_id'] : Uuid::uuid4();
 
         // Add a record
-        $this->builder->insert()
-            ->add('uuid', $id)
-            ->add('id', $key)
-            ->add('resource', $entity->name())
-            ->add('version', 1)
-            ->add('deleted', 0)
-            ->into('_record')
-            ->run();
+        $this->insertRecord($id, $entity->name());
 
         // Add values for each field
         foreach($entity->fields() as $field) {
 
             $value = array_key_exists($field['name'], $data) ? $data[$field['name']] : null;
 
-            $this->insertValue($key, $field['id'], 1, $value);
+            $this->insertValue($id, $field['id'], 1, $value);
         }
 
     }
@@ -235,9 +244,6 @@ class MysqlRecord implements Contracts\Record
     {
         // Validate the data
 
-        // Uuid is unique in is for internal use only
-        $uuid = Uuid::uuid4();
-
         // Get the incremented version
         $version = $this->getNextVersion($entity, $id);
 
@@ -249,7 +255,6 @@ class MysqlRecord implements Contracts\Record
             $current[$next['name']] = $next;
             return $current;
         }, []);
-
 
         // Create an updated value for each data key
         foreach($data as $key => $value) {
@@ -314,14 +319,11 @@ class MysqlRecord implements Contracts\Record
      * @param $resource
      * @param $version
      */
-    protected function insertRecord($id, $resource, $version, $deleted = 0)
+    protected function insertRecord($id, $resource, $version = 1, $deleted = 0)
     {
-        // Uuid is unique in is for internal use only
-        $uuid = Uuid::uuid4();
-
         // Update the version of the record
         $this->builder->insert()
-            ->add('uuid', $uuid)
+            ->add('uuid', Uuid::uuid4())
             ->add('id', $id)
             ->add('resource', $resource)
             ->add('version', $version)

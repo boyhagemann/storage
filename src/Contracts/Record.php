@@ -5,7 +5,7 @@ interface Record
     public function find(Entity $entity, Array $query = [], Array $options = []);
     public function first(Entity $entity, Array $query = [], Array $options = []);
 
-    public function create(Entity $entity, Array $data, Array $options = []);
+    public function insert(Entity $entity, Array $data, Array $options = []);
     public function upsert(Entity $entity, Array $existing, Array $data, Array $options = []);
 
     public function update(Entity $entity, $id, Array $data, Array $options = []);

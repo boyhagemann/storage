@@ -31,11 +31,11 @@ class MysqlMutationTest extends PHPUnit_Framework_TestCase
         $this->driver = new MysqlRecord($pdo);
     }
 
-    public function testCreateRecord()
+    public function testInsertRecord()
     {
         $entity = $this->entityRepository->get('resource1');
 
-        $this->driver->create($entity, [
+        $this->driver->insert($entity, [
             '_id' => 'generated-unique-id',
             'id' => 'id2',
             'name' => 'second',

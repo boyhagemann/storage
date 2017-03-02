@@ -12,6 +12,7 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 
 -- Structuur van  tabel komparu_dev._field wordt geschreven
+DROP TABLE IF EXISTS `_field`;
 CREATE TABLE IF NOT EXISTS `_field` (
   `uuid` varchar(255) NOT NULL,
   `id` varchar(255) NOT NULL,
@@ -28,7 +29,6 @@ CREATE TABLE IF NOT EXISTS `_field` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._field: ~4 rows (ongeveer)
-DELETE FROM `_field`;
 /*!40000 ALTER TABLE `_field` DISABLE KEYS */;
 INSERT INTO `_field` (`uuid`, `id`, `resource`, `name`, `version`, `order`, `type`) VALUES
 	('id1', 'field1', 'resource1', 'name', 1, 1, 'string'),
@@ -38,29 +38,35 @@ INSERT INTO `_field` (`uuid`, `id`, `resource`, `name`, `version`, `order`, `typ
 /*!40000 ALTER TABLE `_field` ENABLE KEYS */;
 
 -- Structuur van  tabel komparu_dev._record wordt geschreven
+DROP TABLE IF EXISTS `_record`;
 CREATE TABLE IF NOT EXISTS `_record` (
   `uuid` varchar(255) NOT NULL,
   `id` varchar(255) NOT NULL,
   `resource` varchar(255) NOT NULL,
   `version` int(11) NOT NULL DEFAULT '0',
   `deleted` tinyint(4) NOT NULL DEFAULT '0',
+  `conditions` varchar(1024) DEFAULT NULL,
+  `conditions_active` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`uuid`),
   KEY `resource` (`resource`),
   KEY `id` (`id`),
-  KEY `deleted` (`deleted`)
+  KEY `deleted` (`deleted`),
+  KEY `conditions` (`conditions`),
+  KEY `conditions_active` (`conditions_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- Dumpen data van tabel komparu_dev._record: ~2 rows (ongeveer)
-DELETE FROM `_record`;
+-- Dumpen data van tabel komparu_dev._record: ~4 rows (ongeveer)
 /*!40000 ALTER TABLE `_record` DISABLE KEYS */;
-INSERT INTO `_record` (`uuid`, `resource`, `id`, `version`, `deleted`) VALUES
-	('id1', 'resource1', 'record1', 1, 0),
-	('id2', 'resource1', 'record2', 1, 0),
-	('id3', 'resource1', 'record2', 2, 1),
-	('id4', 'resource1', 'record1', 2, 0);
+INSERT INTO `_record` (`uuid`, `id`, `resource`, `version`, `deleted`, `conditions`, `conditions_active`) VALUES
+	('id1', 'record1', 'resource1', 1, 0, NULL, 0),
+	('id2', 'record2', 'resource1', 1, 0, NULL, 0),
+	('id3', 'record2', 'resource1', 2, 1, NULL, 0),
+	('id4', 'record1', 'resource1', 2, 0, NULL, 0),
+	('id5', 'record2', 'resource1', 3, 0, '{"cond": "123"}', 1);
 /*!40000 ALTER TABLE `_record` ENABLE KEYS */;
 
 -- Structuur van  tabel komparu_dev._resource wordt geschreven
+DROP TABLE IF EXISTS `_resource`;
 CREATE TABLE IF NOT EXISTS `_resource` (
   `uuid` varchar(255) NOT NULL,
   `id` varchar(255) NOT NULL,
@@ -69,36 +75,38 @@ CREATE TABLE IF NOT EXISTS `_resource` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._resource: ~0 rows (ongeveer)
-DELETE FROM `_resource`;
 /*!40000 ALTER TABLE `_resource` DISABLE KEYS */;
 INSERT INTO `_resource` (`uuid`, `id`, `version`) VALUES
 	('test1', 'resource1', 1);
 /*!40000 ALTER TABLE `_resource` ENABLE KEYS */;
 
 -- Structuur van  tabel komparu_dev._value wordt geschreven
+DROP TABLE IF EXISTS `_value`;
 CREATE TABLE IF NOT EXISTS `_value` (
   `uuid` varchar(255) NOT NULL,
   `record` varchar(255) NOT NULL,
   `field` varchar(255) NOT NULL,
   `version` int(11) NOT NULL,
   `value` text NOT NULL,
+  `conditions` varchar(1024) DEFAULT NULL,
   PRIMARY KEY (`uuid`),
   KEY `field` (`field`),
   KEY `version` (`version`),
-  KEY `record` (`record`)
+  KEY `record` (`record`),
+  KEY `conditions` (`conditions`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._value: ~7 rows (ongeveer)
-DELETE FROM `_value`;
 /*!40000 ALTER TABLE `_value` DISABLE KEYS */;
-INSERT INTO `_value` (`uuid`, `record`, `field`, `version`, `value`) VALUES
-	('id1', 'record1', 'field1', 1, 'test'),
-	('id2', 'record1', 'field2', 1, '123'),
-	('id3', 'record1', 'field3', 1, 'id1'),
-	('id4', 'record1', 'field2', 2, '456'),
-	('id5', 'record2', 'field1', 1, 'foo'),
-	('id6', 'record2', 'field2', 1, 'bar'),
-	('id7', 'record2', 'field3', 1, 'id2');
+INSERT INTO `_value` (`uuid`, `record`, `field`, `version`, `value`, `conditions`) VALUES
+	('id1', 'record1', 'field1', 1, 'test', NULL),
+	('id2', 'record1', 'field2', 1, '123', NULL),
+	('id3', 'record1', 'field3', 1, 'id1', NULL),
+	('id4', 'record1', 'field2', 2, '456', NULL),
+	('id5', 'record2', 'field1', 1, 'foo', NULL),
+	('id6', 'record2', 'field2', 1, 'bar', NULL),
+	('id7', 'record2', 'field3', 1, 'id2', NULL),
+	('id8', 'record2', 'field3', 2, 'conditional_value', '{"cond": "123"}');
 /*!40000 ALTER TABLE `_value` ENABLE KEYS */;
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
