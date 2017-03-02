@@ -153,4 +153,24 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
         $this->assertSame(null, $result);
     }
 
+    public function testFetchRecordWithCondition()
+    {
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->first($entity, [
+//            ['field3', '=', 'id1'] // id = 'id1' @todo needs a field column mapper
+        ], [
+            'conditions' => [
+                'cond' => 123
+            ],
+        ]);
+
+        $this->assertSame([
+            '_id' => 'record1',
+            '_version' => 3,
+            'id' => 'id1',
+            'name' => 'test',
+            'label' => 'conditional_label',
+        ], $result);
+    }
+
 }

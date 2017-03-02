@@ -62,7 +62,7 @@ INSERT INTO `_record` (`uuid`, `id`, `resource`, `version`, `deleted`, `conditio
 	('id2', 'record2', 'resource1', 1, 0, NULL, 0),
 	('id3', 'record2', 'resource1', 2, 1, NULL, 0),
 	('id4', 'record1', 'resource1', 2, 0, NULL, 0),
-	('id5', 'record2', 'resource1', 3, 0, '{"cond": "123"}', 1);
+	('id5', 'record1', 'resource1', 3, 0, '{"cond": 123}', 1);
 /*!40000 ALTER TABLE `_record` ENABLE KEYS */;
 
 -- Structuur van  tabel komparu_dev._resource wordt geschreven
@@ -106,7 +106,7 @@ INSERT INTO `_value` (`uuid`, `record`, `field`, `version`, `value`, `conditions
 	('id5', 'record2', 'field1', 1, 'foo', NULL),
 	('id6', 'record2', 'field2', 1, 'bar', NULL),
 	('id7', 'record2', 'field3', 1, 'id2', NULL),
-	('id8', 'record2', 'field3', 2, 'conditional_value', '{"cond": "123"}');
+	('id8', 'record1', 'field2', 3, 'conditional_label', '{"cond": 123}');
 /*!40000 ALTER TABLE `_value` ENABLE KEYS */;
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

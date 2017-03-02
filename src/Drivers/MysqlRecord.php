@@ -45,14 +45,16 @@ class MysqlRecord implements Contracts\Record
         $dataVersion = isset($options['version']) ? $options['version'] : null;
 
         $conditions = isset($options['conditions']) ? $options['conditions'] : [];
-        $conditionWhere = $this->buildWhereForConditions($conditions);
+//        $conditionWhere = $this->buildWhereForConditions($conditions);
+//        $conditionValue = stripslashes(json_encode($conditions);
+
 
         // Build the record deleted where clause
         $whereDeleted = $this->builder->select()
             ->field('deleted')
             ->from('_record')
             ->where('`id` = r.`id`')
-            ->where($conditionWhere)
+//            ->where($conditionWhere)
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
@@ -61,27 +63,30 @@ class MysqlRecord implements Contracts\Record
             $whereDeleted->where('`version` <= ?', $dataVersion);
         }
 
+        $conditionalWhereDeleted = $this->wrapQueryInCondition($whereDeleted, $conditions);
+
         // Show the latest available version of the record
         $versionField = $this->builder->select()
             ->from('_record')
             ->field('`version`')
             ->where('`id` = r.`id`')
-            ->where($conditionWhere)
             ->orderBy('`version`', 'desc')
             ->limit(1);
+
+        $conditionalVersionField = $this->wrapQueryInCondition($versionField, $conditions);
 
         // Only fetch the records that are not deleted
         $q = $this->builder->select()
             ->from('r', '_record')
             ->field('id', '_id')
-            ->field($versionField, '_version')
-            ->where(sprintf('(%s) = ?', (string) $whereDeleted), 0)
-            ->where($conditionWhere)
+            ->field($conditionalVersionField, '_version')
+            ->where(sprintf('(%s) = ?', (string) $conditionalWhereDeleted), 0)
+//            ->where($conditionWhere)
             ->groupBy('r.`id`');
 
         // Build a subquery for every field
         foreach ($entity->fields() as $field) {
-            $fieldQuery = $this->buildValueFieldQuery($field['id'], $dataVersion, $conditionWhere);
+            $fieldQuery = $this->buildValueFieldQuery($field['id'], $dataVersion, $conditions);
             $q->field($fieldQuery, $field['name']);
         }
 
@@ -95,7 +100,7 @@ class MysqlRecord implements Contracts\Record
                     break;
 
                 default:
-                    $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion, $conditionWhere);
+                    $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion, $conditions);
                     $q->where(sprintf('(%s) %s ?', (string) $fieldQuery, $statement[1]), $statement[2]);
 
             }
@@ -113,11 +118,36 @@ class MysqlRecord implements Contracts\Record
                 case 'limit':
                     $q->limit($value);
                     break;
-
             }
         }
 
 //        $q->debug();
+
+        return $q;
+    }
+
+    /**
+     * @param RunnableSelect $query
+     * @param array $conditions
+     * @return RunnableSelect
+     */
+    protected function wrapQueryInCondition(RunnableSelect $query, Array $conditions)
+    {
+        if(!$conditions) {
+            $query->where('conditions IS NULL');
+            return $query;
+        }
+
+        $queryWithCondition = clone $query;
+
+        foreach($conditions as $key => $value) {
+            $queryWithCondition->where(sprintf('JSON_CONTAINS(CAST(conditions AS JSON), \'%s\', \'$.%s\')', $value, $key));
+        }
+
+        $q = $this->builder->select()
+            ->field(sprintf('IFNULL((%s), (%s))', (string) $queryWithCondition, (string) $query->where('conditions IS NULL')))
+            ->from('_value')
+            ->limit(1);
 
         return $q;
     }
@@ -128,7 +158,7 @@ class MysqlRecord implements Contracts\Record
      */
     protected function buildWhereForConditions(Array $conditions) {
 
-        return sprintf('conditions = "%s" OR conditions IS NULL', json_encode($conditions));
+        return sprintf('conditions = \'%s\' OR conditions IS NULL', json_encode($conditions));
     }
 
     /**
@@ -194,17 +224,16 @@ class MysqlRecord implements Contracts\Record
     /**
      * @param string $key
      * @param int    $version
-     * @param string $conditionWhere
+     * @param array $conditions
      * @return RunnableSelect
      */
-    protected function buildValueFieldQuery($key, $version = null, $conditionWhere)
+    protected function buildValueFieldQuery($key, $version = null, Array $conditions = [])
     {
         $q =  $this->builder->select()
             ->field('value')
             ->from('_value')
             ->where('record = r.`id`')
             ->where('field = ?', $key)
-            ->where($conditionWhere)
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
@@ -212,7 +241,7 @@ class MysqlRecord implements Contracts\Record
             $q->where('`version` <= ?', $version);
         }
 
-        return $q;
+        return $this->wrapQueryInCondition($q, $conditions);
     }
 
     public function insert(Contracts\Entity $entity, Array $data, Array $options = [])
