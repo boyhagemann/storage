@@ -2,7 +2,7 @@
 
 interface
 
-resources
+## Entity
 * find(query, options)
 * first(query, options)
 * insert(data, options)
@@ -10,7 +10,7 @@ resources
 * upsert(data, options)
 * delete(id, options)
 
-fields
+## Field
 * find(query, options)
 * first(query, options)
 * insert(data, options)
@@ -18,7 +18,15 @@ fields
 * upsert(data, options)
 * delete(id, options)
 
-records
+## Record
+* find(query, options)
+* first(query, options)
+* insert(data, options)
+* update(id, data, options)
+* upsert(data, options)
+* delete(id, options)
+
+## Value
 * find(query, options)
 * first(query, options)
 * insert(data, options)
