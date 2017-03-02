@@ -44,17 +44,14 @@ class MysqlRecord implements Contracts\Record
         // Find the values with an optional version
         $dataVersion = isset($options['version']) ? $options['version'] : null;
 
+        // Do we need to handle one or more conditions?
         $conditions = isset($options['conditions']) ? $options['conditions'] : [];
-//        $conditionWhere = $this->buildWhereForConditions($conditions);
-//        $conditionValue = stripslashes(json_encode($conditions);
-
 
         // Build the record deleted where clause
         $whereDeleted = $this->builder->select()
             ->field('deleted')
             ->from('_record')
             ->where('`id` = r.`id`')
-//            ->where($conditionWhere)
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
@@ -62,8 +59,6 @@ class MysqlRecord implements Contracts\Record
         if($dataVersion) {
             $whereDeleted->where('`version` <= ?', $dataVersion);
         }
-
-        $conditionalWhereDeleted = $this->wrapQueryInCondition($whereDeleted, $conditions);
 
         // Show the latest available version of the record
         $versionField = $this->builder->select()
@@ -73,6 +68,8 @@ class MysqlRecord implements Contracts\Record
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
+        // Add the optional conditions to the query, only if we have any conditions
+        $conditionalWhereDeleted = $this->wrapQueryInCondition($whereDeleted, $conditions);
         $conditionalVersionField = $this->wrapQueryInCondition($versionField, $conditions);
 
         // Only fetch the records that are not deleted
@@ -81,7 +78,6 @@ class MysqlRecord implements Contracts\Record
             ->field('id', '_id')
             ->field($conditionalVersionField, '_version')
             ->where(sprintf('(%s) = ?', (string) $conditionalWhereDeleted), 0)
-//            ->where($conditionWhere)
             ->groupBy('r.`id`');
 
         // Build a subquery for every field
@@ -127,38 +123,36 @@ class MysqlRecord implements Contracts\Record
     }
 
     /**
+     * Build a complex IFNULL query that gets row that matches the conditions or falls back
+     * to the non-conditional row.
+     *
      * @param RunnableSelect $query
      * @param array $conditions
      * @return RunnableSelect
      */
     protected function wrapQueryInCondition(RunnableSelect $query, Array $conditions)
     {
+        // No conditions, just add a simple NULL conditions and return this
         if(!$conditions) {
             $query->where('conditions IS NULL');
             return $query;
         }
 
+        // Start the conditional query with the same information of the original query
         $queryWithCondition = clone $query;
 
+        // Build the matching condition query
         foreach($conditions as $key => $value) {
-            $queryWithCondition->where(sprintf('JSON_CONTAINS(CAST(conditions AS JSON), \'%s\', \'$.%s\')', $value, $key));
+            $queryWithCondition->where(sprintf('JSON_CONTAINS(CAST(conditions AS JSON), \'%s\', \'$.%s\')', json_encode($value), $key));
         }
 
+        // Now we have enough to build a complex IFNULL query to handle the conditions
         $q = $this->builder->select()
             ->field(sprintf('IFNULL((%s), (%s))', (string) $queryWithCondition, (string) $query->where('conditions IS NULL')))
             ->from('_value')
             ->limit(1);
 
         return $q;
-    }
-
-    /**
-     * @param array $conditions
-     * @return string
-     */
-    protected function buildWhereForConditions(Array $conditions) {
-
-        return sprintf('conditions = \'%s\' OR conditions IS NULL', json_encode($conditions));
     }
 
     /**

@@ -157,10 +157,10 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
     {
         $entity = $this->entityRepository->get('resource1');
         $result = $this->driver->first($entity, [
-//            ['field3', '=', 'id1'] // id = 'id1' @todo needs a field column mapper
+            ['field3', '=', 'id1'] // id = 'id1' @todo needs a field column mapper
         ], [
             'conditions' => [
-                'cond' => 123
+                'lang' => 'nl'
             ],
         ]);
 
@@ -169,7 +169,7 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
             '_version' => 3,
             'id' => 'id1',
             'name' => 'test',
-            'label' => 'conditional_label',
+            'label' => 'Nederlandse vertaling',
         ], $result);
     }
 
