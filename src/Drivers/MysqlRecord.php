@@ -2,6 +2,7 @@
 
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Contracts\Entity;
+use Boyhagemann\Storage\Exceptions\RecordNotFound;
 use Kir\MySQL\Builder\RunnableSelect;
 use Kir\MySQL\Databases\MySQL as Builder;
 use Ramsey\Uuid\Uuid;
@@ -183,6 +184,27 @@ class MysqlRecord implements Contracts\Record
 
         return $data ? static::format($entity, $data) : null;
     }
+
+    /**
+     * @param Entity $entity
+     * @param $id
+     * @param array $options
+     * @return array
+     * @throws RecordNotFound
+     */
+    public function get(Entity $entity, $id, Array $options = [])
+    {
+        $record = static::first($entity, [
+            ['_id', '=', $id],
+        ]);
+
+        if(!$record) {
+            throw new RecordNotFound(sprintf('The record with _id "%s" is not found', $id));
+        }
+
+        return $record;
+    }
+
 
     /**
      * @param Entity $entity

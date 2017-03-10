@@ -4,6 +4,7 @@ interface Record
 {
     public function find(Entity $entity, Array $query = [], Array $options = []);
     public function first(Entity $entity, Array $query = [], Array $options = []);
+    public function get(Entity $entity, $id, Array $options = []);
 
     public function insert(Entity $entity, Array $data, Array $options = []);
     public function upsert(Entity $entity, Array $existing, Array $data, Array $options = []);

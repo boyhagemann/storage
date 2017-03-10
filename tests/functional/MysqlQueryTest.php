@@ -173,4 +173,26 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
         ], $result);
     }
 
+    public function testGetRecord()
+    {
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->get($entity, 'record1');
+
+        $this->assertSame([
+            '_id' => 'record1',
+            '_version' => 2,
+            'id' => 'id1',
+            'name' => 'test',
+            'label' => '456',
+        ], $result);
+    }
+
+    public function testGetRecordThrowsExceptionWhenNotFound()
+    {
+        $this->expectException(\Boyhagemann\Storage\Exceptions\RecordNotFound::class);
+
+        $entity = $this->entityRepository->get('resource1');
+        $this->driver->get($entity, 'not-existing');
+    }
+
 }
