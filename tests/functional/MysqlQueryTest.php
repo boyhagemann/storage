@@ -89,6 +89,36 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
         ], $result);
     }
 
+    /**
+     * @param array $query
+     * @param $count
+     * @dataProvider queryProvider
+     */
+    public function testFindRecordsWithQuery(Array $query, $count)
+    {
+        $entity = $this->entityRepository->get('resource1');
+        $result = $this->driver->find($entity, $query);
+
+        $this->assertCount($count, $result);
+    }
+
+    public function queryProvider() {
+        return [
+            [
+                [
+                    ['field2', 'IN', '456'],
+                ],
+                1
+            ],
+            [
+                [
+                    ['field2', 'IN', ['456']],
+                ],
+                1
+            ],
+        ];
+    }
+
     public function testFindRecordsWithVersionAndQuery()
     {
         $entity = $this->entityRepository->get('resource1');

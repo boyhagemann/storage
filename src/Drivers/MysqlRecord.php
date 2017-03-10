@@ -97,8 +97,20 @@ class MysqlRecord implements Contracts\Record
                     break;
 
                 default:
+
+                    switch($statement[1]) {
+
+                        case 'IN':
+                            $path = '(%s) %s (?)';
+                            break;
+
+                        default:
+                            $path = '(%s) %s ?';
+                    }
+
                     $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion, $conditions);
-                    $q->where(sprintf('(%s) %s ?', (string) $fieldQuery, $statement[1]), $statement[2]);
+                    $q->where(sprintf($path, (string) $fieldQuery, $statement[1]), $statement[2]);
+//                    die(var_dump(sprintf($path, (string) $fieldQuery, $statement[1])));
 
             }
         }
