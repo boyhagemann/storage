@@ -240,6 +240,10 @@ class MysqlRecord implements Contracts\Record
                 case 'string':
                     $value = (string) $value;
                     break;
+
+                case 'json':
+                    $value = json_decode($value, true);
+                    break;
             }
 
             $formatted[$name] = $value;
