@@ -90,23 +90,24 @@ class MysqlRecord implements Contracts\Record
         // Build the where statements
         foreach ($query as $statement) {
 
-            switch($statement[0]) {
+            // Build the sql path based on the operator
+            switch($statement[1]) {
 
-                case '_id':
-                    $q->where(sprintf('`id` %s ?', $statement[1]), $statement[2]);
+                case 'IN':
+                    $path = '(%s) %s (?)';
                     break;
 
                 default:
+                    $path = '(%s) %s ?';
+            }
 
-                    switch($statement[1]) {
+            switch($statement[0]) {
 
-                        case 'IN':
-                            $path = '(%s) %s (?)';
-                            break;
+                case '_id':
+                    $q->where(sprintf($path, '`id`', $statement[1]), $statement[2]);
+                    break;
 
-                        default:
-                            $path = '(%s) %s ?';
-                    }
+                default:
 
                     $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion, $conditions);
                     $q->where(sprintf($path, (string) $fieldQuery, $statement[1]), $statement[2]);
