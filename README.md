@@ -1,28 +1,35 @@
-# Immutable Data Store
 
-> This is just a proof of concept! Do not use this in production because of its highly experimental nature.
 
-#### Drivers
-- Mysql
+interface
 
 ## Entity
+* find(query, options)
+* first(query, options)
+* insert(data, options)
+* update(id, data, options)
+* upsert(data, options)
+* delete(id, options)
 
-```php
-// Do an initial setup
-$pdo = new PDO( ... );
-$entity = new MysqlEntity($pdo);
-
-// 
-```
+## Field
+* find(query, options)
+* first(query, options)
+* insert(data, options)
+* update(id, data, options)
+* upsert(data, options)
+* delete(id, options)
 
 ## Record
+* find(query, options)
+* first(query, options)
+* insert(data, options)
+* update(id, data, options)
+* upsert(data, options)
+* delete(id, options)
 
-```php
-// Do an initial setup
-$pdo = new PDO( ... );
-$entity = new MysqlEntity($pdo);
-$storage = new MysqlRecord($pdo);
-
-$resource = $entity->get('My resource');
-
-```
+## Value
+* find(query, options)
+* first(query, options)
+* insert(data, options)
+* update(id, data, options)
+* upsert(data, options)
+* delete(id, options)
