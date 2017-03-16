@@ -2,6 +2,7 @@
 
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Contracts\Entity;
+use Boyhagemann\Storage\Exceptions\RecordNotChanged;
 use Boyhagemann\Storage\Exceptions\RecordNotFound;
 use Kir\MySQL\Builder\RunnableSelect;
 use Kir\MySQL\Databases\MySQL as Builder;
@@ -300,21 +301,16 @@ class MysqlRecord implements Contracts\Record
      */
     public function insert(Contracts\Entity $entity, Array $data, Array $options = [])
     {
-        // Validate the data
-
         // Id is fixed and can come from the outside
         $id = isset($data['_id']) ? $data['_id'] : Uuid::uuid4();
 
-        // Add a record
-        $this->insertRecord($id, $entity->name());
+        // Only use data that we need
+        $stripped = $this->stripData($entity, $data);
 
-        // Add values for each field
-        foreach($entity->fields() as $field) {
+        // Validate the data
 
-            $value = array_key_exists($field['name'], $data) ? $data[$field['name']] : null;
-
-            $this->insertValue($id, $field['id'], 1, $value);
-        }
+        // Commit to the storage
+        $this->store($entity, $id, $stripped);
 
         return $id;
     }
@@ -345,28 +341,112 @@ class MysqlRecord implements Contracts\Record
      */
     public function update(Contracts\Entity $entity, $id, Array $data, Array $options = [])
     {
-        // Find the existing record
-        $this->firstOrFail($entity, [
+        // Find the existing record or throw an exception
+        $current = $this->firstOrFail($entity, [
             ['_id', '=', $id]
         ]);
 
+        // Only use data that we need
+        $stripped = $this->stripData($entity, $data);
+
+        // Check if there are changes with the current data
+        $this->checkChanges($current, $stripped);
+
         // Validate the data
 
+        // Commit to the storage
+        $this->store($entity, $id, $stripped);
+    }
+
+    /**
+     * @param array $current
+     * @param array $data
+     * @throws RecordNotChanged
+     */
+    protected function checkChanges(Array $current, Array $data)
+    {
+        if(!$this->hasChanges($current, $data)) {
+            throw new RecordNotChanged(sprintf('There provided data "%s" has no changes against "%s"',
+                json_encode($data), json_encode($current)));
+        }
+    }
+
+    /**
+     * @param array $current
+     * @param array $data
+     * @return bool
+     */
+    protected function hasChanges(Array $current, Array $data)
+    {
+        foreach ($data as $key => $value) {
+            if(!array_key_exists($key, $current)) return true;
+            if($current[$key] !== $value) return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param Entity $entity
+     * @param array $data
+     * @return array
+     */
+    protected function stripData(Contracts\Entity $entity, Array $data)
+    {
+        $stripped = [];
+
+        foreach($entity->fields() as $field) {
+            $key = $field['name'];
+            if(array_key_exists($key, $data)) {
+                $stripped[$key] = $data[$key];
+            }
+        }
+
+        return $stripped;
+    }
+
+    /**
+     * @param Entity $entity
+     * @param array $data
+     * @return array
+     */
+    protected function transformKeys(Contracts\Entity $entity, Array $data)
+    {
+        // Key the fields by name, for easy lookup
+        $fields = array_reduce($entity->fields(), function(Array $current, Array $field) {
+            $current[$field['name']] = $field;
+            return $current;
+        }, []);
+
+        $transformed = [];
+        foreach ($data as $key => $value) {
+            $id = $fields[$key]['id'];
+            $transformed[$id] = $value;
+        }
+
+        return $transformed;
+    }
+
+    /**
+     * @param Entity $entity
+     * @param string $id
+     * @param array $data
+     * @return array
+     */
+    protected function store(Contracts\Entity $entity, $id, Array $data)
+    {
         // Get the incremented version
         $version = $this->getNextVersion($entity, $id);
 
         // Update the version of the record
         $this->insertRecord($id, $entity->name(), $version);
 
-        // Key the fields by name, for easy lookup
-        $fields = array_reduce($entity->fields(), function($current, $next) {
-            $current[$next['name']] = $next;
-            return $current;
-        }, []);
+        // Transform the keys of the data for insertion
+        $transformed = $this->transformKeys($entity, $data);
 
-        // Create an updated value for each data key
-        foreach($data as $key => $value) {
-            $this->insertValue($id, $fields[$key]['id'], $version, $value);
+        // Insert each data value
+        foreach($transformed as $key => $value) {
+            $this->insertValue($id, $key, $version, $value);
         }
     }
 
