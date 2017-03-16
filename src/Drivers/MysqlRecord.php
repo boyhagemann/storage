@@ -376,7 +376,7 @@ class MysqlRecord implements Contracts\Record
      * @param array $data
      * @return bool
      */
-    protected function hasChanges(Array $current, Array $data)
+    public function hasChanges(Array $current, Array $data)
     {
         foreach ($data as $key => $value) {
             if(!array_key_exists($key, $current)) return true;
@@ -391,7 +391,7 @@ class MysqlRecord implements Contracts\Record
      * @param array $data
      * @return array
      */
-    protected function stripData(Contracts\Entity $entity, Array $data)
+    public function stripData(Contracts\Entity $entity, Array $data)
     {
         $stripped = [];
 
@@ -410,7 +410,7 @@ class MysqlRecord implements Contracts\Record
      * @param array $data
      * @return array
      */
-    protected function transformKeys(Contracts\Entity $entity, Array $data)
+    public function transform(Contracts\Entity $entity, Array $data)
     {
         // Key the fields by name, for easy lookup
         $fields = array_reduce($entity->fields(), function(Array $current, Array $field) {
@@ -421,6 +421,15 @@ class MysqlRecord implements Contracts\Record
         $transformed = [];
         foreach ($data as $key => $value) {
             $id = $fields[$key]['id'];
+            $type = $fields[$key]['type'];
+
+            switch($type) {
+
+                case 'json':
+                    $value = is_array($value) ? json_encode($value) : $value;
+                    break;
+            }
+
             $transformed[$id] = $value;
         }
 
@@ -441,8 +450,8 @@ class MysqlRecord implements Contracts\Record
         // Update the version of the record
         $this->insertRecord($id, $entity->name(), $version);
 
-        // Transform the keys of the data for insertion
-        $transformed = $this->transformKeys($entity, $data);
+        // Transform the keys and values of the data for insertion
+        $transformed = $this->transform($entity, $data);
 
         // Insert each data value
         foreach($transformed as $key => $value) {
