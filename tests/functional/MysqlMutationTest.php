@@ -87,6 +87,30 @@ class MysqlMutationTest extends PHPUnit_Framework_TestCase
         ]));
     }
 
+    public function testUpsertRecord()
+    {
+        $entity = $this->entityRepository->get('resource1');
+
+        $this->driver->upsert($entity, 'record1', [
+            'label' => 'Updated'
+        ]);
+
+        $expected = [
+            [
+                '_id' => 'record1',
+                '_version' => 3,
+                'id' => 'id1',
+                'name' => 'test',
+                'label' => 'Updated',
+            ],
+        ];
+
+        $this->assertSame($expected, $this->driver->find($entity, [], [
+            'order' => 'id',
+        ]));
+
+    }
+
     public function testDeleteRecord()
     {
         $entity = $this->entityRepository->get('resource1');

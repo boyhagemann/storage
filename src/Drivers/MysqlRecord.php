@@ -108,11 +108,8 @@ class MysqlRecord implements Contracts\Record
                     break;
 
                 default:
-
                     $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion, $conditions);
                     $q->where(sprintf($path, (string) $fieldQuery, $statement[1]), $statement[2]);
-//                    die(var_dump(sprintf($path, (string) $fieldQuery, $statement[1])));
-
             }
         }
 
@@ -200,6 +197,24 @@ class MysqlRecord implements Contracts\Record
 
     /**
      * @param Entity $entity
+     * @param array $query
+     * @param array $options
+     * @return array
+     * @throws RecordNotFound
+     */
+    public function firstOrFail(Contracts\Entity $entity, Array $query = [], Array $options = [])
+    {
+        $item = $this->first($entity, $query, $options);
+
+        if($item === null) {
+            throw new RecordNotFound(sprintf('The item for entity "%s" and query "%s" is not found', $entity->name(), json_encode($query)));
+        }
+
+        return $item;
+    }
+
+    /**
+     * @param Entity $entity
      * @param $id
      * @param array $options
      * @return array
@@ -277,6 +292,12 @@ class MysqlRecord implements Contracts\Record
         return $this->wrapQueryInCondition($q, $conditions);
     }
 
+    /**
+     * @param Entity $entity
+     * @param array $data
+     * @param array $options
+     * @return string
+     */
     public function insert(Contracts\Entity $entity, Array $data, Array $options = [])
     {
         // Validate the data
@@ -295,15 +316,40 @@ class MysqlRecord implements Contracts\Record
             $this->insertValue($id, $field['id'], 1, $value);
         }
 
+        return $id;
     }
 
-    public function upsert(Contracts\Entity $entity, Array $existing, Array $data, Array $options = [])
+    /**
+     * @param Entity $entity
+     * @param $id
+     * @param array $data
+     * @param array $options
+     * @return string|null
+     **/
+    public function upsert(Contracts\Entity $entity, $id, Array $data, Array $options = [])
     {
-        // TODO: Implement upsert() method.
+        try {
+            return $this->update($entity, $id, $data, $options);
+        }
+        catch (RecordNotFound $e) {
+            $data['_id'] = $id;
+            return $this->insert($entity, $data, $options);
+        }
     }
 
+    /**
+     * @param Entity $entity
+     * @param $id
+     * @param array $data
+     * @param array $options
+     */
     public function update(Contracts\Entity $entity, $id, Array $data, Array $options = [])
     {
+        // Find the existing record
+        $this->firstOrFail($entity, [
+            ['_id', '=', $id]
+        ]);
+
         // Validate the data
 
         // Get the incremented version
