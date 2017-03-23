@@ -88,6 +88,68 @@ class MysqlRecord implements Contracts\Record
             $q->field($fieldQuery, $field['name']);
         }
 
+        /**
+         * @TODO make this nested
+         */
+        if(isset($query['and'])) {
+            $where = $this->collectWhereStatements($entity, $query['and'], $dataVersion, $conditions);
+            $this->applyAndWhere($q, $where);
+        }
+
+        if(isset($query['or'])) {
+            $where = $this->collectWhereStatements($entity, $query['or'], $dataVersion, $conditions);
+            $this->applyOrWhere($q, $where);
+        }
+
+
+
+        foreach($options as $key => $value) {
+
+            switch($key) {
+
+                case 'order':
+                    $direction = isset($options['direction']) ? $options['direction'] : 'asc';
+                    $q->orderBy($value, $direction);
+                    break;
+
+                case 'limit':
+                    $q->limit($value);
+                    break;
+            }
+        }
+
+//        $q->debug();
+
+        return $q;
+    }
+
+    protected function applyAndWhere(RunnableSelect $q, Array $where)
+    {
+        foreach($where as $statement) {
+            $q->where($statement['path'], $statement['value']);
+        }
+    }
+
+    protected function applyOrWhere(RunnableSelect $q, Array $where)
+    {
+        $whereString = implode(' OR ', array_map(function(Array $w) {
+            return $w['path'];
+        }, $where));
+        $whereParams = array_map(function(Array $w) {
+            return $w['value'];
+        }, $where);
+        array_unshift($whereParams, $whereString);
+
+//        dd($whereParams);
+        if($where) {
+            call_user_func_array([$q, 'where'], $whereParams);
+        }
+    }
+
+    protected function collectWhereStatements(Entity $entity, Array $query, $dataVersion, $conditions)
+    {
+        $where = [];
+
         // Build the where statements
         foreach ($query as $statement) {
 
@@ -109,7 +171,10 @@ class MysqlRecord implements Contracts\Record
             switch($key) {
 
                 case '_id':
-                    $q->where(sprintf($path, '`id`', $statement[1]), $statement[2]);
+                    $where[] = [
+                        'path' => sprintf($path, '`id`', $statement[1]),
+                        'value' => $statement[2],
+                    ];
                     break;
 
                 default:
@@ -122,39 +187,28 @@ class MysqlRecord implements Contracts\Record
                     // Find the field
                     $field = $this->findField($entity, $fieldId);
 
-                    $fieldQuery = $this->buildValueFieldQuery($entity, $key, $dataVersion, $conditions);
+                    $fieldQuery = $this->buildValueFieldQuery($entity, $field['id'], $dataVersion, $conditions);
 
                     switch($field['type']) {
 
                         // Prepare the right value for the where statement
                         case 'json':
-                            $path = sprintf('JSON_CONTAINS(CAST((%s) AS JSON), ?)', '%s');
+                            $jsonPath = strstr($key, '.') ? substr($key, strpos($key, '.') + 1) : null;
+                            $path = $jsonPath
+                                ? sprintf('JSON_CONTAINS(CAST((%s) AS JSON), ?, \'$.%s\')', '%s', $jsonPath)
+                                : sprintf('JSON_CONTAINS(CAST((%s) AS JSON), ?)', '%s');
                             $value = json_encode($value);
                             break;
                     }
 
-                    $q->where(sprintf($path, (string) $fieldQuery, $statement[1]), $value);
+                    $where[] = [
+                        'path' => sprintf($path, (string) $fieldQuery, $statement[1]),
+                        'value' => $value,
+                    ];
             }
         }
 
-        foreach($options as $key => $value) {
-
-            switch($key) {
-
-                case 'order':
-                    $direction = isset($options['direction']) ? $options['direction'] : 'asc';
-                    $q->orderBy($value, $direction);
-                    break;
-
-                case 'limit':
-                    $q->limit($value);
-                    break;
-            }
-        }
-
-//        $q->debug();
-
-        return $q;
+        return $where;
     }
 
     /**
@@ -261,7 +315,9 @@ class MysqlRecord implements Contracts\Record
     public function get(Entity $entity, $id, Array $options = [])
     {
         $record = static::first($entity, [
-            ['_id', '=', $id],
+            'and' => [
+                ['_id', '=', $id],
+            ],
         ]);
 
         if(!$record) {

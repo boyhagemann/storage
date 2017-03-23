@@ -132,7 +132,9 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
     {
         $entity = $this->entityRepository->get('resource1');
         $result = $this->driver->find($entity, [
-            ['field2', '=', 'bar'],
+            'and' => [
+                ['field2', '=', 'bar'],
+            ],
         ], [
             'version' => 1
         ]);
@@ -153,7 +155,9 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
     {
         $entity = $this->entityRepository->get('resource1');
         $result = $this->driver->first($entity, [
-            ['field3', '=', 'id1']
+            'and' => [
+                ['field3', '=', 'id1'],
+            ],
         ]);
 
         $this->assertSame([
@@ -173,7 +177,9 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
     {
         $entity = $this->entityRepository->get('resource1', 1);
         $result = $this->driver->first($entity, [
-            ['field3', '=', 'id2']
+            'and' => [
+                ['field3', '=', 'id2'],
+            ]
         ], [
             'version' => 1
         ]);
@@ -192,7 +198,9 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
     {
         $entity = $this->entityRepository->get('resource1');
         $result = $this->driver->first($entity, [
-            ['field3', '=', 'id2']
+            'and' => [
+                ['field3', '=', 'id2']
+            ],
         ]);
 
         $this->assertSame(null, $result);
@@ -202,7 +210,9 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
     {
         $entity = $this->entityRepository->get('resource1');
         $result = $this->driver->first($entity, [
-            ['field3', '=', 'id1'] // id = 'id1' @todo needs a field column mapper
+            'and' => [
+                ['field3', '=', 'id1'] // id = 'id1' @todo needs a field column mapper
+            ],
         ], [
             'conditions' => [
                 'lang' => 'nl'
@@ -245,7 +255,9 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
         $this->expectException(\Boyhagemann\Storage\Exceptions\RecordNotFound::class);
 
         $entity = $this->entityRepository->get('resource1');
-        $this->driver->get($entity, 'not-existing');
+        $test = $this->driver->get($entity, 'not-existing');
+
+        die(var_dump($test));
     }
 
 }
