@@ -84,15 +84,19 @@ class MysqlRecord implements Contracts\Record
 
         // Build a subquery for every field
         foreach ($entity->fields() as $field) {
-            $fieldQuery = $this->buildValueFieldQuery($field['id'], $dataVersion, $conditions);
+            $fieldQuery = $this->buildValueFieldQuery($entity, $field['id'], $dataVersion, $conditions);
             $q->field($fieldQuery, $field['name']);
         }
 
         // Build the where statements
         foreach ($query as $statement) {
 
+            $key = $statement[0];
+            $operator = $statement[1];
+            $value = $statement[2];
+
             // Build the sql path based on the operator
-            switch($statement[1]) {
+            switch($operator) {
 
                 case 'IN':
                     $path = '(%s) %s (?)';
@@ -102,15 +106,34 @@ class MysqlRecord implements Contracts\Record
                     $path = '(%s) %s ?';
             }
 
-            switch($statement[0]) {
+            switch($key) {
 
                 case '_id':
                     $q->where(sprintf($path, '`id`', $statement[1]), $statement[2]);
                     break;
 
                 default:
-                    $fieldQuery = $this->buildValueFieldQuery($statement[0], $dataVersion, $conditions);
-                    $q->where(sprintf($path, (string) $fieldQuery, $statement[1]), $statement[2]);
+
+                    // Get the field ID to find the field type
+                    $fieldId = strstr($key, '.')
+                        ? substr($key, 0, strpos($key, '.'))
+                        : $key;
+
+                    // Find the field
+                    $field = $this->findField($entity, $fieldId);
+
+                    $fieldQuery = $this->buildValueFieldQuery($entity, $key, $dataVersion, $conditions);
+
+                    switch($field['type']) {
+
+                        // Prepare the right value for the where statement
+                        case 'json':
+                            $path = sprintf('JSON_CONTAINS(CAST((%s) AS JSON), ?)', '%s');
+                            $value = json_encode($value);
+                            break;
+                    }
+
+                    $q->where(sprintf($path, (string) $fieldQuery, $statement[1]), $value);
             }
         }
 
@@ -132,6 +155,20 @@ class MysqlRecord implements Contracts\Record
 //        $q->debug();
 
         return $q;
+    }
+
+    /**
+     * @param Entity $entity
+     * @param $id
+     * @return array|null
+     */
+    protected function findField(Entity $entity, $id)
+    {
+        $found = array_values(array_filter($entity->fields(), function(Array $field) use ($id) {
+            return $field['id'] === $id;
+        }));
+
+        return $found ? $found[0] : null;
     }
 
     /**
@@ -276,7 +313,7 @@ class MysqlRecord implements Contracts\Record
      * @param array $conditions
      * @return RunnableSelect
      */
-    protected function buildValueFieldQuery($key, $version = null, Array $conditions = [])
+    protected function buildValueFieldQuery(Entity $entity, $key, $version = null, Array $conditions = [])
     {
         $q =  $this->builder->select()
             ->field('value')

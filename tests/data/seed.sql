@@ -34,7 +34,8 @@ INSERT INTO `_field` (`uuid`, `id`, `resource`, `name`, `version`, `order`, `typ
 	('id1', 'field1', 'resource1', 'name', 1, 1, 'string'),
 	('id2', 'field2', 'resource1', 'label_old', 1, 2, 'string'),
 	('id3', 'field2', 'resource1', 'label', 2, 2, 'string'),
-	('id4', 'field3', 'resource1', 'id', 1, 0, 'string');
+	('id4', 'field3', 'resource1', 'id', 1, 0, 'string'),
+	('id5', 'field4', 'resource1', 'uses', 1, 5, 'json');
 /*!40000 ALTER TABLE `_field` ENABLE KEYS */;
 
 -- Structuur van  tabel komparu_dev._record wordt geschreven
@@ -106,7 +107,8 @@ INSERT INTO `_value` (`uuid`, `record`, `field`, `version`, `value`, `conditions
 	('id5', 'record2', 'field1', 1, 'foo', NULL),
 	('id6', 'record2', 'field2', 1, 'bar', NULL),
 	('id7', 'record2', 'field3', 1, 'id2', NULL),
-	('id8', 'record1', 'field2', 3, 'Nederlandse vertaling', '{"lang": "nl"}');
+	('id8', 'record1', 'field2', 3, 'Nederlandse vertaling', '{"lang": "nl"}'),
+	('id9', 'record1', 'field4', 1, '["first", "second"]', NULL);
 /*!40000 ALTER TABLE `_value` ENABLE KEYS */;
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

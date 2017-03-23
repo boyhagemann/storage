@@ -60,6 +60,10 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
                 'id' => 'id1',
                 'name' => 'test',
                 'label' => '456',
+                'uses' => [
+                    'first',
+                    'second',
+                ],
             ],
         ], $result);
     }
@@ -78,6 +82,10 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
                 'id' => 'id1',
                 'name' => 'test',
                 'label' => '123',
+                'uses' => [
+                    'first',
+                    'second',
+                ],
             ],
             [
                 '_id' => 'record2',
@@ -85,6 +93,7 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
                 'id' => 'id2',
                 'name' => 'foo',
                 'label' => 'bar',
+                'uses' => null,
             ],
         ], $result);
     }
@@ -135,6 +144,7 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
                 'id' => 'id2',
                 'name' => 'foo',
                 'label' => 'bar',
+                'uses' => null,
             ],
         ], $result);
     }
@@ -152,6 +162,10 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'test',
             'label' => '456',
+            'uses' => [
+                'first',
+                'second',
+            ],
         ], $result);
     }
 
@@ -170,6 +184,7 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
             'id' => 'id2',
             'name' => 'foo',
             'label_old' => 'bar',
+            'uses' => null,
         ], $result);
     }
 
@@ -200,6 +215,10 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'test',
             'label' => 'Nederlandse vertaling',
+            'uses' => [
+                'first',
+                'second',
+            ],
         ], $result);
     }
 
@@ -214,6 +233,10 @@ class MysqlQueryTest extends PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'test',
             'label' => '456',
+            'uses' => [
+                'first',
+                'second',
+            ],
         ], $result);
     }
 
