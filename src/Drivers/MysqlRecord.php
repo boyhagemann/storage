@@ -172,9 +172,10 @@ class MysqlRecord implements Contracts\Record
 
                 case '_id':
                     $where[] = [
-                        'path' => sprintf($path, '`id`', $statement[1]),
-                        'value' => $statement[2],
+                        'path' => sprintf('(%s) IN (?)', '`id`'),
+                        'value' => (array) $statement[2],
                     ];
+//                    dd($where);
                     break;
 
                 default:
