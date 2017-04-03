@@ -16,21 +16,21 @@ DROP TABLE IF EXISTS `_field`;
 CREATE TABLE IF NOT EXISTS `_field` (
   `uuid` varchar(255) NOT NULL,
   `id` varchar(255) NOT NULL,
-  `resource` varchar(255) DEFAULT NULL,
+  `entity` varchar(255) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `version` int(11) NOT NULL DEFAULT '0',
   `order` int(11) DEFAULT '0',
   `type` char(50) NOT NULL,
   PRIMARY KEY (`uuid`),
   KEY `version` (`version`),
-  KEY `resource` (`resource`),
+  KEY `entity` (`entity`),
   KEY `id` (`id`),
   KEY `order` (`order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._field: ~4 rows (ongeveer)
 /*!40000 ALTER TABLE `_field` DISABLE KEYS */;
-INSERT INTO `_field` (`uuid`, `id`, `resource`, `name`, `version`, `order`, `type`) VALUES
+INSERT INTO `_field` (`uuid`, `id`, `entity`, `name`, `version`, `order`, `type`) VALUES
 	('id1', 'field1', 'resource1', 'name', 1, 1, 'string'),
 	('id2', 'field2', 'resource1', 'label_old', 1, 2, 'string'),
 	('id3', 'field2', 'resource1', 'label', 2, 2, 'string'),
@@ -43,13 +43,13 @@ DROP TABLE IF EXISTS `_record`;
 CREATE TABLE IF NOT EXISTS `_record` (
   `uuid` varchar(255) NOT NULL,
   `id` varchar(255) NOT NULL,
-  `resource` varchar(255) NOT NULL,
+  `entity` varchar(255) NOT NULL,
   `version` int(11) NOT NULL DEFAULT '0',
   `deleted` tinyint(4) NOT NULL DEFAULT '0',
   `conditions` varchar(1024) DEFAULT NULL,
   `conditions_active` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`uuid`),
-  KEY `resource` (`resource`),
+  KEY `entity` (`entity`),
   KEY `id` (`id`),
   KEY `deleted` (`deleted`),
   KEY `conditions` (`conditions`),
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS `_record` (
 
 -- Dumpen data van tabel komparu_dev._record: ~4 rows (ongeveer)
 /*!40000 ALTER TABLE `_record` DISABLE KEYS */;
-INSERT INTO `_record` (`uuid`, `id`, `resource`, `version`, `deleted`, `conditions`, `conditions_active`) VALUES
+INSERT INTO `_record` (`uuid`, `id`, `entity`, `version`, `deleted`, `conditions`, `conditions_active`) VALUES
 	('id1', 'record1', 'resource1', 1, 0, NULL, 0),
 	('id2', 'record2', 'resource1', 1, 0, NULL, 0),
 	('id3', 'record2', 'resource1', 2, 1, NULL, 0),
@@ -66,20 +66,20 @@ INSERT INTO `_record` (`uuid`, `id`, `resource`, `version`, `deleted`, `conditio
 	('id5', 'record1', 'resource1', 3, 0, '{"lang": "nl"}', 1);
 /*!40000 ALTER TABLE `_record` ENABLE KEYS */;
 
--- Structuur van  tabel komparu_dev._resource wordt geschreven
-DROP TABLE IF EXISTS `_resource`;
-CREATE TABLE IF NOT EXISTS `_resource` (
+-- Structuur van  tabel komparu_dev._entity wordt geschreven
+DROP TABLE IF EXISTS `_entity`;
+CREATE TABLE IF NOT EXISTS `_entity` (
   `uuid` varchar(255) NOT NULL,
   `id` varchar(255) NOT NULL,
   `version` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- Dumpen data van tabel komparu_dev._resource: ~0 rows (ongeveer)
-/*!40000 ALTER TABLE `_resource` DISABLE KEYS */;
-INSERT INTO `_resource` (`uuid`, `id`, `version`) VALUES
+-- Dumpen data van tabel komparu_dev._entity: ~0 rows (ongeveer)
+/*!40000 ALTER TABLE `_entity` DISABLE KEYS */;
+INSERT INTO `_entity` (`uuid`, `id`, `version`) VALUES
 	('test1', 'resource1', 1);
-/*!40000 ALTER TABLE `_resource` ENABLE KEYS */;
+/*!40000 ALTER TABLE `_entity` ENABLE KEYS */;
 
 -- Structuur van  tabel komparu_dev._value wordt geschreven
 DROP TABLE IF EXISTS `_value`;

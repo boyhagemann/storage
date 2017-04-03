@@ -607,16 +607,16 @@ class MysqlRecord implements Contracts\Record
 
     /**
      * @param $id
-     * @param $resource
+     * @param $entity
      * @param $version
      */
-    protected function insertRecord($id, $resource, $version = 1, $deleted = 0)
+    protected function insertRecord($id, $entity, $version = 1, $deleted = 0)
     {
         // Update the version of the record
         $this->builder->insert()
             ->add('uuid', Uuid::uuid4())
             ->add('id', $id)
-            ->add('resource', $resource)
+            ->add('entity', $entity)
             ->add('version', $version)
             ->add('deleted', $deleted)
             ->into('_record')

@@ -2,13 +2,15 @@
 
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Entity;
-use Boyhagemann\Storage\Exceptions\ResourceNotFound;
-use Boyhagemann\Storage\Exceptions\ResourceWithVersionNotFound;
+use Boyhagemann\Storage\Exceptions\Invalid;
+use Boyhagemann\Storage\Exceptions\EntityNotFound;
+use Boyhagemann\Storage\Exceptions\EntityWithVersionNotFound;
 use Kir\MySQL\Builder\RunnableSelect;
 use Kir\MySQL\Databases\MySQL as Builder;
 use PDO;
+use Ramsey\Uuid\Uuid;
 
-class MysqlEntity implements Contracts\EntityRepository
+class MysqlEntity implements Contracts\EntityRepository, Contracts\Validatable
 {
     /**
      * @var Builder
@@ -21,25 +23,31 @@ class MysqlEntity implements Contracts\EntityRepository
     protected $pdo;
 
     /**
-     * Mysql constructor.
-     * @param $host
-     * @param $database
-     * @param $username
-     * @param $password
+     * @var Contracts\Validator
      */
-    public function __construct(PDO $pdo)
+    protected $validator;
+
+    /**
+     * MysqlEntity constructor.
+     *
+     * @param PDO $pdo
+     * @param Contracts\Validator $validator
+     */
+    public function __construct(PDO $pdo, Contracts\Validator $validator)
     {
         $this->pdo = $pdo;
 
         $builder = new Builder($pdo);
 
         $this->builder = $builder;
+
+        $this->validator = $validator;
     }
 
     protected function buildFindQuery(Array $query = [], Array $options)
     {
         return $this->builder->select()
-            ->from('_resource');
+            ->from('_entity');
     }
 
     /**
@@ -70,7 +78,7 @@ class MysqlEntity implements Contracts\EntityRepository
     public function get($id, $version = null)
     {
         $q = $this->builder->select()
-            ->from('_resource')
+            ->from('_entity')
             ->where('id = ?', $id)
             ->orderBy('`version`', 'desc');
 
@@ -78,28 +86,28 @@ class MysqlEntity implements Contracts\EntityRepository
             $q->where('`version` = ?', $version);
         }
 
-        $resource = $q->fetchRow();
+        $entity = $q->fetchRow();
 
-        if(!$resource) {
+        if(!$entity) {
 
             $e = $version
-                ? new ResourceWithVersionNotFound(sprintf('Resource with id "%s" and version "%d" does not exist', $id, $version))
-                : new ResourceNotFound(sprintf('No resource found with id "%s"', $id));
+                ? new EntityWithVersionNotFound(sprintf('Entity with id "%s" and version "%d" does not exist', $id, $version))
+                : new EntityNotFound(sprintf('No entity found with id "%s"', $id));
 
             throw $e;
         }
 
-        // Get the fields for this resource, to create a record
+        // Get the fields for this entity, to create a record
         $fields = $this->findFields([
-            ['resource', '=', $id],
+            ['entity', '=', $id],
         ], compact('version'));
 
         // Cannot continue if there are no fields
-        if(!$fields) {
-            throw new \Exception(sprintf('No fields found for resource "%s", version "%s"', $resource, $version));
-        }
+//        if(!$fields) {
+//            throw new \Exception(sprintf('No fields found for entity "%s", version "%s"', $id, $version));
+//        }
 
-        return new Entity($resource['uuid'], $resource['version'], $resource['id'], $fields);
+        return new Entity($entity['uuid'], (int) $entity['version'], $entity['id'], $fields);
     }
 
     /**
@@ -134,9 +142,27 @@ class MysqlEntity implements Contracts\EntityRepository
         // TODO: Implement getVersions() method.
     }
 
+    /**
+     * @param array $data
+     * @throws Invalid
+     */
     public function create(Array $data)
     {
-        // TODO: Implement create() method.
+        // Validate the data first
+        $this->getValidator()->validateCreate($data);
+
+        // UUID is fixed and can come from the outside
+        $uuid = isset($data['id']) ? $data['id'] : Uuid::uuid4();
+
+        // Insert the new entity
+        $this->builder->insert()
+            ->into('_entity')
+            ->addAll([
+                'uuid' => $uuid,
+                'id' => $data['name'],
+                'version' => 1
+            ])
+            ->run();
     }
 
     public function update($id, Array $data)
@@ -179,6 +205,14 @@ class MysqlEntity implements Contracts\EntityRepository
         }
 
         return $q;
+    }
+
+    /**
+     * @return Contracts\Validator
+     */
+    public function getValidator()
+    {
+        return $this->validator;
     }
 
 

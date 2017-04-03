@@ -9,7 +9,8 @@
     "require": {
         "rkr/php-mysql-query-builder": "0.1.*",
         "vlucas/phpdotenv": "~2.4",
-        "ramsey/uuid": "~3.5"
+        "ramsey/uuid": "~3.5",
+        "particle/validator": "~2.0@dev"
     },
     "autoload": {
         "psr-4": {

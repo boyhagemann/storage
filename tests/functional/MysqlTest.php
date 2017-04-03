@@ -1,9 +1,10 @@
 <?php
 
-use Boyhagemann\Storage\Exceptions\ResourceNotFound;
-use Boyhagemann\Storage\Exceptions\ResourceWithVersionNotFound;
 use Boyhagemann\Storage\Drivers\MysqlRecord;
 use Boyhagemann\Storage\Drivers\MysqlEntity;
+use Boyhagemann\Storage\Validators\EntityValidator;
+use Boyhagemann\Storage\Drivers\MysqlField;
+use Boyhagemann\Storage\Validators\FieldValidator;
 
 class MysqlTest extends AbstractTest
 {
@@ -19,9 +20,10 @@ class MysqlTest extends AbstractTest
         $sql = file_get_contents(__DIR__ . '/../data/seed.sql');
         $pdo->exec($sql);
 
-        // Create the driver
-        $this->entityRepository = new MysqlEntity($pdo);
+        // Create the drivers
+        $this->entities = new MysqlEntity($pdo, new EntityValidator());
         $this->driver = new MysqlRecord($pdo);
+        $this->fields = new MysqlField($pdo, new FieldValidator());
     }
 
 }

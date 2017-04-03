@@ -20,7 +20,4 @@ interface EntityRepository
 
     public function delete($id);
     public function deleteWhere(Array $query);
-
-//    public function findFields(Array $query = [], Array $options = []);
-
 }

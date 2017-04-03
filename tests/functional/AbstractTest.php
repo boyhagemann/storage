@@ -1,9 +1,11 @@
 <?php
 
-use Boyhagemann\Storage\Exceptions\ResourceNotFound;
-use Boyhagemann\Storage\Exceptions\ResourceWithVersionNotFound;
+use Boyhagemann\Storage\Exceptions\EntityNotFound;
+use Boyhagemann\Storage\Exceptions\EntityWithVersionNotFound;
 use Boyhagemann\Storage\Drivers\MysqlRecord;
 use Boyhagemann\Storage\Drivers\MysqlEntity;
+use Boyhagemann\Storage\Contracts\FieldRepository;
+use Boyhagemann\Storage\Exceptions\Invalid;
 
 abstract class AbstractTest extends PHPUnit_Framework_TestCase
 {
@@ -15,7 +17,12 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
     /**
      * @var MysqlEntity
      */
-    protected $entityRepository;
+    protected $entities;
+
+    /**
+     * @var FieldRepository
+     */
+    protected $fields;
 
     abstract public function init();
 
@@ -24,23 +31,73 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         $this->init();
     }
 
+    public function testCreateEntityThrowsExceptionOnInvalidData()
+    {
+        $this->expectException(Invalid::class);
+        $this->entities->create([]);
+    }
+
+    public function testCreateEntity()
+    {
+        $this->entities->create([
+            'id' => 'some-unique-id',
+            'name' => 'my-entity',
+        ]);
+
+        $expected = [
+            'id' => 'some-unique-id',
+            'name' => 'my-entity',
+            'version' => 1,
+            'fields' => [],
+        ];
+
+        $entity = $this->entities->get('my-entity');
+
+        $this->assertSame($entity->toArray(), $expected);
+    }
+    /**
+     * @group test
+     */
+    public function testCreateField()
+    {
+        $this->fields->create([
+            'entity' => 'my-entity',
+            'id' => 'some-unique-id',
+            'name' => 'my-field',
+            'type' => 'string',
+        ]);
+
+        $subset = [
+            'id' => 'some-unique-id',
+            'name' => 'my-field',
+            'entity' => 'my-entity',
+            'version' => 1,
+            'type' => 'string',
+        ];
+
+        $result = $this->fields->find([
+            ['entity', '=', 'my-entity'],
+        ]);
+
+        $this->assertCount(1, $result);
+        $this->assertArraySubset($subset, $result[0]);
+    }
+
     public function testGetNonExistingEntityThrowsException()
     {
-        $this->expectException(ResourceNotFound::class);
-
-        $this->entityRepository->get('non-existing-resource');
+        $this->expectException(EntityNotFound::class);
+        $this->entities->get('non-existing-resource');
     }
 
     public function testGetNonExistingEntityVersionThrowsException()
     {
-        $this->expectException(ResourceWithVersionNotFound::class);
-
-        $this->entityRepository->get('resource1', 222);
+        $this->expectException(EntityWithVersionNotFound::class);
+        $this->entities->get('resource1', 222);
     }
 
     public function testFindLatestRecords()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->find($entity, [], []);
 
         $this->assertSame([
@@ -60,7 +117,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testFindRecordsWithVersion()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->find($entity, [], [
             'version' => 1
         ]);
@@ -95,7 +152,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
      */
     public function testFindRecordsWithQuery(Array $query, $count)
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->find($entity, $query);
 
         $this->assertCount($count, $result);
@@ -120,7 +177,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testFindRecordsWithVersionAndQuery()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->find($entity, [
             'and' => [
                 ['field2', '=', 'bar'],
@@ -143,7 +200,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testFetchLatestRecord()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->first($entity, [
             'and' => [
                 ['field3', '=', 'id1'],
@@ -165,7 +222,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testFetchRecordWithVersion()
     {
-        $entity = $this->entityRepository->get('resource1', 1);
+        $entity = $this->entities->get('resource1', 1);
         $result = $this->driver->first($entity, [
             'and' => [
                 ['field3', '=', 'id2'],
@@ -186,7 +243,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testFetchDeletedRecordWithResourceVersion()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->first($entity, [
             'and' => [
                 ['field3', '=', 'id2']
@@ -198,7 +255,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testFetchRecordWithCondition()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->first($entity, [
             'and' => [
                 ['field3', '=', 'id1'] // id = 'id1' @todo needs a field column mapper
@@ -224,7 +281,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testGetRecord()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $result = $this->driver->get($entity, 'record1');
 
         $this->assertSame([
@@ -244,13 +301,13 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
     {
         $this->expectException(\Boyhagemann\Storage\Exceptions\RecordNotFound::class);
 
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
         $this->driver->get($entity, 'not-existing');
     }
 
     public function testInsertRecord()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
 
         $this->driver->insert($entity, [
             '_id' => 'generated-unique-id',
@@ -288,7 +345,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testUpdateRecord()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
 
         $this->driver->update($entity, 'record1', [
             'label' => 'Updated'
@@ -318,7 +375,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
     {
         $this->expectException(\Boyhagemann\Storage\Exceptions\RecordNotChanged::class);
 
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
 
         $this->driver->update($entity, 'record1', [
             'label' => '456'
@@ -327,7 +384,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testUpsertWithExistingRecord()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
 
         $this->driver->upsert($entity, 'record1', [
             'label' => 'Updated'
@@ -355,7 +412,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testUpsertWithNewRecord()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
 
         $this->driver->upsert($entity, 'non-existing', [
             '_id' => 'non-existing',
@@ -371,7 +428,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
     public function testDeleteRecord()
     {
-        $entity = $this->entityRepository->get('resource1');
+        $entity = $this->entities->get('resource1');
 
         $this->driver->delete($entity, 'record1');
 

@@ -8,6 +8,19 @@ This package can be used in any API framework.
 ## Testing
 Run `vendor/bin/phpunit` to run all tests.
 
+## Quick Start
+
+1. Setup the Entity and a Record
+```php
+    $pdo = new PDO( ... );
+    $entity = new MysqlEntity($pdo);
+    $record = new MysqlRecord($pdo);
+```
+
+2. Create a new entity
+
+3. Insert a record
+
 
 ## Drivers
 By default, it ships with a Mysql driver.
@@ -35,36 +48,3 @@ This is what happens of something changes in a Record:
 * If the changes of the Record differ from the last version, then the version of the `Record` increments with 1.
 * If a provided `Value` differs from the last version of this Value, the version for this Value increments with 1.
 
-## interface
-
-#### Entity
-* find(query, options)
-* first(query, options)
-* insert(data, options)
-* update(id, data, options)
-* upsert(data, options)
-* delete(id, options)
-
-#### Field
-* find(query, options)
-* first(query, options)
-* insert(data, options)
-* update(id, data, options)
-* upsert(data, options)
-* delete(id, options)
-
-#### Record
-* find(query, options)
-* first(query, options)
-* insert(data, options)
-* update(id, data, options)
-* upsert(data, options)
-* delete(id, options)
-
-#### Value
-* find(query, options)
-* first(query, options)
-* insert(data, options)
-* update(id, data, options)
-* upsert(data, options)
-* delete(id, options)
