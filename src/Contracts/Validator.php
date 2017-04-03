@@ -7,6 +7,7 @@ interface Validator
     /**
      * @param array $data
      * @throws Invalid
+     * @return array
      */
     public function validateCreate(Array $data);
 
@@ -14,6 +15,7 @@ interface Validator
      * @param string $id
      * @param array $data
      * @throws Invalid
+     * @return array
      */
     public function validateUpdate($id, Array $data);
 }

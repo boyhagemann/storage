@@ -58,6 +58,8 @@ class MysqlField implements Contracts\FieldRepository, Contracts\Validatable
             ->field($this->buildFieldSelectQuery('name', $version), 'name')
             ->field($this->buildFieldSelectQuery('order', $version), 'order')
             ->field($this->buildFieldSelectQuery('type', $version), 'type')
+            ->field($this->buildFieldSelectQuery('required', $version), 'required')
+            ->field($this->buildFieldSelectQuery('collection', $version), 'collection')
             ->from('f', '_field')
             ->groupBy('`id`')
             ->orderBy('`order`');
@@ -73,23 +75,12 @@ class MysqlField implements Contracts\FieldRepository, Contracts\Validatable
     /**
      * @param string $name
      * @param int    $version
-     * @param string $cast
      * @return RunnableSelect
      */
-    protected function buildFieldSelectQuery($name, $version = null, $cast = null)
+    protected function buildFieldSelectQuery($name, $version = null)
     {
-        switch($cast) {
-
-            case 'int':
-                $field = 'CAST(`%s` AS AS UNSIGNED)';
-                break;
-
-            default:
-                $field = '`%s`';
-        }
-
         $q = $this->builder->select()
-            ->field(sprintf($field, $name))
+            ->field(sprintf('`%s`', $name))
             ->from('_field')
             ->where('`id` = f.`id`')
             ->orderBy('`version`', 'desc')
@@ -177,33 +168,51 @@ class MysqlField implements Contracts\FieldRepository, Contracts\Validatable
     public function create(Array $data)
     {
         // Validate the data first
-        $this->getValidator()->validateCreate($data);
+        $values = $this->getValidator()->validateCreate($data);
 
         // UUID is fixed and can come from the outside
         $id = isset($data['id']) ? $data['id'] : Uuid::uuid4();
 
+        // Transform the values to be compatible with mysql
+        $mappedValues = array_map(function($value) {
+            return $this->prepareValueForInsertion($value);
+        }, $values);
+
         // Insert the new entity
         $this->builder->insert()
             ->into('_field')
-            ->addAll([
+            ->addAll($mappedValues + [
                 'uuid' => Uuid::uuid4(),
                 'id' => $id,
-                'entity' => $data['entity'],
-                'name' => $data['name'],
-                'type' => $data['type'],
                 'version' => 1
             ])
             ->run();
     }
 
-    public function validateUpdate($id, Array $data)
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    protected function prepareValueForInsertion($value)
     {
-        // TODO: Implement validateUpdate() method.
+        switch(gettype($value)) {
+
+            case 'boolean':
+                return (int) $value;
+        }
+
+        return $value;
     }
 
     public function update($id, Array $data)
     {
-        // TODO: Implement update() method.
+        // Validate the data first
+        $values = $this->getValidator()->validateUpdate($id, $data);
+
+        // Transform the values to be compatible with mysql
+        $mappedValues = array_map(function($value) {
+            return $this->prepareValueForInsertion($value);
+        }, $values);
     }
 
     public function updateWhere(Array $query, Array $data)

@@ -48,9 +48,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         $this->assertSame($entity->id(), 'my-entity');
         $this->assertSame($entity->version(), 1);
     }
-    /**
-     * @group test
-     */
+
     public function testCreateField()
     {
         $this->fields->create([
@@ -58,6 +56,8 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             'id' => 'some-unique-id',
             'name' => 'my-field',
             'type' => 'string',
+            'required' => true,
+            'collection' => false,
         ]);
 
         $subset = [
@@ -307,7 +307,8 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             '_id' => 'generated-unique-id',
             'id' => 'id2',
             'name' => 'second',
-            'label' => 'Second record'
+            'label' => 'Second record',
+            'some_fake_field' => 'must be skipped',
         ]);
 
         $expected = [
@@ -335,6 +336,18 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         $this->assertSame($expected, $this->driver->find($entity, [], [
             'order' => 'id',
         ]));
+    }
+
+    /**
+     * @group test
+     */
+    public function testInsertRecordWithInvalidDataThrowsException()
+    {
+        $this->expectException(Invalid::class);
+
+        $entity = $this->entities->get('resource1');
+
+        $this->driver->insert($entity, []);
     }
 
     public function testUpdateRecord()

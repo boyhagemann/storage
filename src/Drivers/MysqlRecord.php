@@ -2,6 +2,7 @@
 
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Contracts\Entity;
+use Boyhagemann\Storage\Contracts\Validator;
 use Boyhagemann\Storage\Exceptions\RecordNotChanged;
 use Boyhagemann\Storage\Exceptions\RecordNotFound;
 use Kir\MySQL\Builder\RunnableSelect;
@@ -9,7 +10,7 @@ use Kir\MySQL\Databases\MySQL as Builder;
 use Ramsey\Uuid\Uuid;
 use PDO;
 
-class MysqlRecord implements Contracts\Record
+class MysqlRecord implements Contracts\Record, Contracts\Validatable
 {
     /**
      * @var Builder
@@ -22,6 +23,16 @@ class MysqlRecord implements Contracts\Record
     protected $pdo;
 
     /**
+     * @var Contracts\Validator
+     */
+    protected $validator;
+
+    /**
+     * @var \Closure
+     */
+    protected $validatorCallback;
+
+    /**
      * MysqlRecord constructor.
      *
      * @param PDO $pdo
@@ -32,6 +43,14 @@ class MysqlRecord implements Contracts\Record
 
         $this->pdo = $pdo;
         $this->builder = $builder;
+    }
+
+    /**
+     * @param \Closure $callback
+     */
+    public function buildValidator(\Closure $callback)
+    {
+        $this->validatorCallback = $callback;
     }
 
     /**
@@ -398,13 +417,18 @@ class MysqlRecord implements Contracts\Record
         // Id is fixed and can come from the outside
         $id = isset($data['_id']) ? $data['_id'] : Uuid::uuid4();
 
-        // Only use data that we need
-        $stripped = $this->stripData($entity, $data);
+        // Build the validator
+        /** @var Contracts\Validator $validator */
+        $validator = call_user_func($this->validatorCallback, $entity);
 
         // Validate the data
+        $values = $validator->validateCreate($data);
+
+        // Only use data that we need
+//        $stripped = $this->stripData($entity, $values);
 
         // Commit to the storage
-        $this->store($entity, $id, $stripped);
+        $this->store($entity, $id, $values);
 
         return $id;
     }
@@ -621,6 +645,14 @@ class MysqlRecord implements Contracts\Record
             ->add('deleted', $deleted)
             ->into('_record')
             ->run();
+    }
+
+    /**
+     * @return Contracts\Validator
+     */
+    public function getValidator()
+    {
+        return $this->validator;
     }
 
 

@@ -1,6 +1,7 @@
 <?php
 
 use Boyhagemann\Storage\Drivers\MysqlRecord;
+use Boyhagemann\Storage\Validators\RecordValidator;
 use Boyhagemann\Storage\Drivers\MysqlEntity;
 use Boyhagemann\Storage\Validators\EntityValidator;
 use Boyhagemann\Storage\Drivers\MysqlField;
@@ -23,7 +24,11 @@ class MysqlTest extends AbstractTest
         // Create the drivers
         $this->fields = new MysqlField($pdo, new FieldValidator());
         $this->entities = new MysqlEntity($pdo, new EntityValidator(), $this->fields);
+
         $this->driver = new MysqlRecord($pdo);
+        $this->driver->buildValidator(function(\Boyhagemann\Storage\Contracts\Entity $entity) {
+            return new RecordValidator($entity);
+        });
     }
 
 }
