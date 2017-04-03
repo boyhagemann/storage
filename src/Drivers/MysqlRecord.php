@@ -424,9 +424,6 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
         // Validate the data
         $values = $validator->validateCreate($data);
 
-        // Only use data that we need
-//        $stripped = $this->stripData($entity, $values);
-
         // Commit to the storage
         $this->store($entity, $id, $values);
 
@@ -464,16 +461,18 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
             ['_id', '=', $id]
         ]);
 
-        // Only use data that we need
-        $stripped = $this->stripData($entity, $data);
-
-        // Check if there are changes with the current data
-        $this->checkChanges($current, $stripped);
+        // Build the validator
+        /** @var Contracts\Validator $validator */
+        $validator = call_user_func($this->validatorCallback, $entity);
 
         // Validate the data
+        $values = $validator->validateUpdate($id, $data);
+
+        // Check if there are changes with the current data
+        $this->checkChanges($current, $values);
 
         // Commit to the storage
-        $this->store($entity, $id, $stripped);
+        $this->store($entity, $id, $values);
     }
 
     /**
@@ -502,25 +501,6 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
         }
 
         return false;
-    }
-
-    /**
-     * @param Entity $entity
-     * @param array $data
-     * @return array
-     */
-    public function stripData(Contracts\Entity $entity, Array $data)
-    {
-        $stripped = [];
-
-        foreach($entity->fields() as $field) {
-            $key = $field['name'];
-            if(array_key_exists($key, $data)) {
-                $stripped[$key] = $data[$key];
-            }
-        }
-
-        return $stripped;
     }
 
     /**
