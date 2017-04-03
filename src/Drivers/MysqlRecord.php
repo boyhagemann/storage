@@ -457,13 +457,12 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
     public function update(Contracts\Entity $entity, $id, Array $data, Array $options = [])
     {
         // Find the existing record or throw an exception
-        $current = $this->firstOrFail($entity, [
-            ['_id', '=', $id]
-        ]);
+        $current = $this->get($entity, $id, $options);
 
         // Build the validator
         /** @var Contracts\Validator $validator */
         $validator = call_user_func($this->validatorCallback, $entity);
+
 
         // Validate the data
         $values = $validator->validateUpdate($id, $data);
@@ -471,8 +470,11 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
         // Check if there are changes with the current data
         $this->checkChanges($current, $values);
 
+        // We only need the changed values
+        $changes = $this->getChanges($current, $values);
+
         // Commit to the storage
-        $this->store($entity, $id, $values);
+        $this->store($entity, $id, $changes);
     }
 
     /**
@@ -501,6 +503,18 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
         }
 
         return false;
+    }
+
+    /**
+     * @param array $current
+     * @param array $data
+     * @return array
+     */
+    public function getChanges(Array $current, Array $data)
+    {
+        $values = array_intersect_key($current, $data);
+
+        return array_diff($data, $values);
     }
 
     /**
@@ -585,7 +599,9 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
     {
         // Get the latest record to get the version number
         $latest = $this->first($entity, [
-            ['_id', '=', $id]
+            'and' => [
+                ['_id', '=', $id],
+            ]
         ]);
 
         return $latest['_version'] + 1;

@@ -325,7 +325,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             ],
             [
                 '_id' => 'generated-unique-id',
-                '_version' => 3,
+                '_version' => 1,
                 'id' => 'id2',
                 'name' => 'second',
                 'label' => 'Second record',
