@@ -40,20 +40,13 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
     public function testCreateEntity()
     {
         $this->entities->create([
-            'id' => 'some-unique-id',
-            'name' => 'my-entity',
+            'id' => 'my-entity',
         ]);
-
-        $expected = [
-            'id' => 'some-unique-id',
-            'name' => 'my-entity',
-            'version' => 1,
-            'fields' => [],
-        ];
 
         $entity = $this->entities->get('my-entity');
 
-        $this->assertSame($entity->toArray(), $expected);
+        $this->assertSame($entity->id(), 'my-entity');
+        $this->assertSame($entity->version(), 1);
     }
     /**
      * @group test
@@ -71,7 +64,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             'id' => 'some-unique-id',
             'name' => 'my-field',
             'entity' => 'my-entity',
-            'version' => 1,
+            'order' => 0,
             'type' => 'string',
         ];
 
@@ -80,6 +73,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         ]);
 
         $this->assertCount(1, $result);
+        $this->assertInstanceOf(\Boyhagemann\Storage\Contracts\Field::class, $result[0]);
         $this->assertArraySubset($subset, $result[0]);
     }
 

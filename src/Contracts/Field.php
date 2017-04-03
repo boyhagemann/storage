@@ -5,6 +5,11 @@ interface Field
     /**
      * @return string
      */
+    public function uuid();
+
+    /**
+     * @return string
+     */
     public function id();
 
     /**

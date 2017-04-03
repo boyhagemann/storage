@@ -5,20 +5,25 @@ interface Entity
     /**
      * @return string
      */
+    public function uuid();
+
+    /**
+     * @return string
+     */
     public function id();
 
     /**
      * @return int
      */
     public function version();
+//
+//    /**
+//     * @return string
+//     */
+//    public function name();
 
     /**
-     * @return string
-     */
-    public function name();
-
-    /**
-     * @return array
+     * @return Field[]
      */
     public function fields();
 

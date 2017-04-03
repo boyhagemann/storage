@@ -2,13 +2,14 @@
 
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Exceptions\Invalid;
+use Boyhagemann\Storage\Field;
 use Kir\MySQL\Builder\RunnableSelect;
 use Particle\Validator\Validator;
 use Kir\MySQL\Databases\MySQL as Builder;
 use PDO;
 use Ramsey\Uuid\Uuid;
 
-class MysqlField implements Contracts\EntityRepository, Contracts\Validatable
+class MysqlField implements Contracts\FieldRepository, Contracts\Validatable
 {
     /**
      * @var Builder
@@ -48,11 +49,54 @@ class MysqlField implements Contracts\EntityRepository, Contracts\Validatable
      */
     protected function buildFindQuery(Array $query = [], Array $options)
     {
-        $q =  $this->builder->select()
-            ->from('_field');
+        // Find the values with an optional version
+        $version = isset($options['version']) ? $options['version'] : null;
 
-        foreach($query as $item) {
-            $q->where(sprintf('%s %s ?', $item[0], $item[1]), $item[2]);
+        $q = $this->builder->select()
+            ->field('`id`')
+            ->field($this->buildFieldSelectQuery('entity', $version), 'entity')
+            ->field($this->buildFieldSelectQuery('name', $version), 'name')
+            ->field($this->buildFieldSelectQuery('order', $version), 'order')
+            ->field($this->buildFieldSelectQuery('type', $version), 'type')
+            ->from('f', '_field')
+            ->groupBy('`id`')
+            ->orderBy('`order`');
+
+        foreach ($query as $statement) {
+            $field = $this->buildFieldSelectQuery($statement[0], $version);
+            $q->where(sprintf('(%s) %s ?', (string) $field, $statement[1]), $statement[2]);
+        }
+
+        return $q;
+    }
+
+    /**
+     * @param string $name
+     * @param int    $version
+     * @param string $cast
+     * @return RunnableSelect
+     */
+    protected function buildFieldSelectQuery($name, $version = null, $cast = null)
+    {
+        switch($cast) {
+
+            case 'int':
+                $field = 'CAST(`%s` AS AS UNSIGNED)';
+                break;
+
+            default:
+                $field = '`%s`';
+        }
+
+        $q = $this->builder->select()
+            ->field(sprintf($field, $name))
+            ->from('_field')
+            ->where('`id` = f.`id`')
+            ->orderBy('`version`', 'desc')
+            ->limit(1);
+
+        if($version) {
+            $q->where('`version` <= ?', $version);
         }
 
         return $q;
@@ -65,7 +109,9 @@ class MysqlField implements Contracts\EntityRepository, Contracts\Validatable
      */
     public function find(Array $query = [], Array $options = [])
     {
-        return $this->buildFindQuery($query, $options)->fetchRows();
+        $rows = $this->buildFindQuery($query, $options)->fetchRows();
+
+        return array_map([$this, 'wrap'], $rows);
     }
 
     /**
@@ -75,7 +121,9 @@ class MysqlField implements Contracts\EntityRepository, Contracts\Validatable
      */
     public function first(Array $query = [], Array $options = [])
     {
-        return $this->buildFindQuery($query, $options)->fetchRow() ?: null;
+        $row = $this->buildFindQuery($query, $options)->fetchRow();
+
+        return $row ? $this->wrap($row) : null;
     }
 
     /**
@@ -105,7 +153,16 @@ class MysqlField implements Contracts\EntityRepository, Contracts\Validatable
             throw $e;
         }
 
-        return new Field($field['uuid'], (int) $field['version'], $field['id'], $fields);
+        return new Field($field);
+    }
+
+    /**
+     * @param array $data
+     * @return Field
+     */
+    protected function wrap(Array $data)
+    {
+        return new Field($data);
     }
 
     public function getVersions($id, Array $options = [])

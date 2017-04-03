@@ -2,9 +2,14 @@
 
 class Entity extends \ArrayObject implements Contracts\Entity
 {
-    public function __construct($id, $version, $name, Array $fields = [])
+    public function __construct($uuid, $id, $version, Array $fields = [])
     {
-        $this->exchangeArray(compact('id', 'name', 'version', 'fields'));
+        $this->exchangeArray(compact('uuid', 'id', 'version', 'fields'));
+    }
+
+    public function uuid()
+    {
+        return $this->offsetGet('uuid');
     }
 
     public function id()
@@ -17,10 +22,10 @@ class Entity extends \ArrayObject implements Contracts\Entity
         return $this->offsetGet('version');
     }
 
-    public function name()
-    {
-        return $this->offsetGet('name');
-    }
+//    public function name()
+//    {
+//        return $this->offsetGet('name');
+//    }
 
     public function fields()
     {

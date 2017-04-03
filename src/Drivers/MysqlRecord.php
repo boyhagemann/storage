@@ -219,7 +219,7 @@ class MysqlRecord implements Contracts\Record
      */
     protected function findField(Entity $entity, $id)
     {
-        $found = array_values(array_filter($entity->fields(), function(Array $field) use ($id) {
+        $found = array_values(array_filter($entity->fields(), function(Contracts\Field $field) use ($id) {
             return $field['id'] === $id;
         }));
 
@@ -300,7 +300,7 @@ class MysqlRecord implements Contracts\Record
         $item = $this->first($entity, $query, $options);
 
         if($item === null) {
-            throw new RecordNotFound(sprintf('The item for entity "%s" and query "%s" is not found', $entity->name(), json_encode($query)));
+            throw new RecordNotFound(sprintf('The item for entity "%s" and query "%s" is not found', $entity->id(), json_encode($query)));
         }
 
         return $item;
@@ -507,7 +507,7 @@ class MysqlRecord implements Contracts\Record
     public function transform(Contracts\Entity $entity, Array $data)
     {
         // Key the fields by name, for easy lookup
-        $fields = array_reduce($entity->fields(), function(Array $current, Array $field) {
+        $fields = array_reduce($entity->fields(), function(Array $current, Contracts\Field $field) {
             $current[$field['name']] = $field;
             return $current;
         }, []);
@@ -542,7 +542,7 @@ class MysqlRecord implements Contracts\Record
         $version = $this->getNextVersion($entity, $id);
 
         // Update the version of the record
-        $this->insertRecord($id, $entity->name(), $version);
+        $this->insertRecord($id, $entity->id(), $version);
 
         // Transform the keys and values of the data for insertion
         $transformed = $this->transform($entity, $data);
@@ -564,7 +564,7 @@ class MysqlRecord implements Contracts\Record
         $version = $this->getNextVersion($entity, $id);
 
         // Update the version of the record
-        $this->insertRecord($id, $entity->name(), $version, 1);
+        $this->insertRecord($id, $entity->id(), $version, 1);
     }
 
     public function deleteWhere(Contracts\Entity $entity, Array $query, Array $options = [])

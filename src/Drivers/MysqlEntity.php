@@ -28,12 +28,17 @@ class MysqlEntity implements Contracts\EntityRepository, Contracts\Validatable
     protected $validator;
 
     /**
+     * @var Contracts\FieldRepository
+     */
+    protected $fields;
+
+    /**
      * MysqlEntity constructor.
-     *
      * @param PDO $pdo
      * @param Contracts\Validator $validator
+     * @param Contracts\FieldRepository $fields
      */
-    public function __construct(PDO $pdo, Contracts\Validator $validator)
+    public function __construct(PDO $pdo, Contracts\Validator $validator, Contracts\FieldRepository $fields)
     {
         $this->pdo = $pdo;
 
@@ -42,6 +47,8 @@ class MysqlEntity implements Contracts\EntityRepository, Contracts\Validatable
         $this->builder = $builder;
 
         $this->validator = $validator;
+
+        $this->fields = $fields;
     }
 
     protected function buildFindQuery(Array $query = [], Array $options)
@@ -98,43 +105,21 @@ class MysqlEntity implements Contracts\EntityRepository, Contracts\Validatable
         }
 
         // Get the fields for this entity, to create a record
-        $fields = $this->findFields([
+        $fields = $this->fields()->find([
             ['entity', '=', $id],
         ], compact('version'));
 
-        // Cannot continue if there are no fields
-//        if(!$fields) {
-//            throw new \Exception(sprintf('No fields found for entity "%s", version "%s"', $id, $version));
-//        }
 
-        return new Entity($entity['uuid'], (int) $entity['version'], $entity['id'], $fields);
+
+        return new Entity($entity['uuid'], $entity['id'], (int) $entity['version'], $fields);
     }
 
     /**
-     * @param array $query
-     * @param array $options
-     * @return array
+     * @return Contracts\FieldRepository
      */
-    public function findFields(Array $query = [], Array $options = [])
+    public function fields()
     {
-        // Find the values with an optional version
-        $version = isset($options['version']) ? $options['version'] : null;
-
-        $q = $this->builder->select()
-            ->field('`id`')
-            ->field($this->buildFieldSelectQuery('name', $version), 'name')
-            ->field($this->buildFieldSelectQuery('order', $version), 'order')
-            ->field($this->buildFieldSelectQuery('type', $version), 'type')
-            ->from('f', '_field')
-            ->groupBy('`id`')
-            ->orderBy('`order`');
-
-        foreach ($query as $statement) {
-            $field = $this->buildFieldSelectQuery($statement[0], $version);
-            $q->where(sprintf('(%s) %s ?', (string) $field, $statement[1]), $statement[2]);
-        }
-
-        return $q->fetchRows();
+        return $this->fields;
     }
 
     public function getVersions($id, Array $options = [])
@@ -152,15 +137,15 @@ class MysqlEntity implements Contracts\EntityRepository, Contracts\Validatable
         $this->getValidator()->validateCreate($data);
 
         // UUID is fixed and can come from the outside
-        $uuid = isset($data['id']) ? $data['id'] : Uuid::uuid4();
+        $id = isset($data['id']) ? $data['id'] : Uuid::uuid4();
 
         // Insert the new entity
         $this->builder->insert()
             ->into('_entity')
             ->addAll([
-                'uuid' => $uuid,
-                'id' => $data['name'],
-                'version' => 1
+                'uuid' => Uuid::uuid4(),
+                'id' => $id,
+                'version' => 1,
             ])
             ->run();
     }
@@ -183,28 +168,6 @@ class MysqlEntity implements Contracts\EntityRepository, Contracts\Validatable
     public function deleteWhere(Array $query)
     {
         // TODO: Implement deleteWhere() method.
-    }
-
-
-    /**
-     * @param string $name
-     * @param int    $version
-     * @return RunnableSelect
-     */
-    protected function buildFieldSelectQuery($name, $version = null)
-    {
-        $q = $this->builder->select()
-            ->field(sprintf('`%s`', $name))
-            ->from('_field')
-            ->where('`id` = f.`id`')
-            ->orderBy('`version`', 'desc')
-            ->limit(1);
-
-        if($version) {
-            $q->where('`version` <= ?', $version);
-        }
-
-        return $q;
     }
 
     /**

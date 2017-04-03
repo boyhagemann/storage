@@ -21,9 +21,9 @@ class MysqlTest extends AbstractTest
         $pdo->exec($sql);
 
         // Create the drivers
-        $this->entities = new MysqlEntity($pdo, new EntityValidator());
-        $this->driver = new MysqlRecord($pdo);
         $this->fields = new MysqlField($pdo, new FieldValidator());
+        $this->entities = new MysqlEntity($pdo, new EntityValidator(), $this->fields);
+        $this->driver = new MysqlRecord($pdo);
     }
 
 }

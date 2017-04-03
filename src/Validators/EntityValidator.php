@@ -20,12 +20,12 @@ class EntityValidator implements Contracts\Validator
 
         // Add the create validation rules
         $this->validator->context('create', function(Validator $v) {
-            $v->required('name');
+            $v->required('id');
         });
 
         // Add the update validation rules
         $this->validator->context('update', function(Validator $v) {
-            $v->required('_id');
+//            $v->required('_id');
         });
     }
 
@@ -49,7 +49,7 @@ class EntityValidator implements Contracts\Validator
      */
     public function validateUpdate($id, Array $data)
     {
-        $result = $this->validator->validate($data, 'create');
+        $result = $this->validator->validate($data, 'update');
 
         if($result->isNotValid()) {
             throw new Invalid($result->getMessages());
