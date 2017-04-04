@@ -2,6 +2,15 @@
 
 interface Field
 {
+    const TYPE_STRING = 'string';
+    const TYPE_BOOLEAN = 'boolean';
+    const TYPE_JSON = 'json';
+    const TYPE_TEXT = 'text';
+    const TYPE_INTEGER = 'integer';
+    const TYPE_FLOAT = 'float';
+    const TYPE_DATE = 'date';
+    const TYPE_DATETIME = 'datetime';
+
     /**
      * @return string
      */

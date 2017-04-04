@@ -2,6 +2,7 @@
 
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Exceptions\Invalid;
+use Particle\Validator\Chain;
 use Particle\Validator\Validator;
 
 class RecordValidator implements Contracts\Validator
@@ -42,25 +43,38 @@ class RecordValidator implements Contracts\Validator
     protected function buildValidation(Contracts\Field $field, Validator $v, $context)
     {
         $name = $field->name();
+
+        /** @var Chain $element */
         $element = $field->isRequired() && $context === 'create' ? $v->required($name) : $v->optional($name);
 
         switch($field->type()) {
 
-            case 'string':
+            case Contracts\Field::TYPE_STRING:
                 $element->string();
                 break;
 
-            case 'bool':
-            case 'boolean':
+            case Contracts\Field::TYPE_BOOLEAN:
                 $element->bool();
                 break;
 
-            case 'json':
+            case Contracts\Field::TYPE_JSON:
                 $element->isArray();
                 break;
 
-            case 'number':
+            case Contracts\Field::TYPE_INTEGER:
                 $element->numeric();
+                break;
+
+            case Contracts\Field::TYPE_DATE:
+                $element->datetime('Y-m-d');
+                break;
+
+            case Contracts\Field::TYPE_DATETIME:
+                $element->datetime('Y-m-d H:i:s');
+                break;
+
+            case Contracts\Field::TYPE_FLOAT:
+                $element->float();
                 break;
         }
     }
