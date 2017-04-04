@@ -1,6 +1,6 @@
 <?php namespace Boyhagemann\Storage\Contracts;
 
-interface Field
+interface Field extends Arrayable
 {
     const TYPE_STRING = 'string';
     const TYPE_BOOLEAN = 'boolean';
@@ -45,10 +45,5 @@ interface Field
      * @return bool
      */
     public function isCollection();
-
-    /**
-     * @return array
-     */
-    public function toArray();
 
 }

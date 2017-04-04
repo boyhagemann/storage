@@ -1,10 +1,14 @@
 <?php namespace Boyhagemann\Storage;
 
+use Boyhagemann\Storage\Contracts;
+
 class Entity extends \ArrayObject implements Contracts\Entity
 {
-    public function __construct($uuid, $id, $version, Array $fields = [])
+    public function __construct($uuid, $id, $version, Contracts\Collection $fields = null)
     {
-        $this->exchangeArray(compact('uuid', 'id', 'version', 'fields'));
+        $this->exchangeArray(compact('uuid', 'id', 'version') + [
+            'fields' => $fields->all()
+            ]);
     }
 
     public function uuid()

@@ -1,16 +1,19 @@
 <?php namespace Boyhagemann\Storage\Drivers;
 
+use Boyhagemann\Storage\Collection;
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Contracts\Entity;
 use Boyhagemann\Storage\Contracts\Validator;
 use Boyhagemann\Storage\Exceptions\RecordNotChanged;
 use Boyhagemann\Storage\Exceptions\RecordNotFound;
+use Boyhagemann\Storage\Record;
+use Boyhagemann\Storage\RecordCollection;
 use Kir\MySQL\Builder\RunnableSelect;
 use Kir\MySQL\Databases\MySQL as Builder;
 use Ramsey\Uuid\Uuid;
 use PDO;
 
-class MysqlRecord implements Contracts\Record, Contracts\Validatable
+class MysqlRecord implements Contracts\RecordRepository, Contracts\Validatable
 {
     /**
      * @var Builder
@@ -280,36 +283,37 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
      * @param Contracts\Entity $entity
      * @param array $query
      * @param array $options
-     * @return \array[]
+     * @return Collection
      */
     public function find(Contracts\Entity $entity, Array $query = [], Array $options = [])
     {
         $rows = $this->buildFindQuery($entity, $query, $options)->fetchRows();
-        $formatted = array_map(function(Array $data) use ($entity) {
-            return static::format($entity, $data);
+
+        $records = array_map(function(Array $data) use ($entity) {
+            return static::wrap($entity, $data);
         }, $rows);
 
-        return $formatted;
+        return new Collection($records);
     }
 
     /**
      * @param Contracts\Entity $entity
      * @param array $query
      * @param array $options
-     * @return \mixed[]
+     * @return Contracts\Record|null
      */
     public function first(Contracts\Entity $entity, Array $query = [], Array $options = [])
     {
         $data = $this->buildFindQuery($entity, $query, $options)->fetchRow();
 
-        return $data ? static::format($entity, $data) : null;
+        return $data ? static::wrap($entity, $data) : null;
     }
 
     /**
      * @param Entity $entity
      * @param array $query
      * @param array $options
-     * @return array
+     * @return Contracts\Record
      * @throws RecordNotFound
      */
     public function firstOrFail(Contracts\Entity $entity, Array $query = [], Array $options = [])
@@ -327,7 +331,7 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
      * @param Entity $entity
      * @param $id
      * @param array $options
-     * @return array
+     * @return Contracts\Record
      * @throws RecordNotFound
      */
     public function get(Entity $entity, $id, Array $options = [])
@@ -349,9 +353,9 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
     /**
      * @param Entity $entity
      * @param array $data
-     * @return array
+     * @return Contracts\Record
      */
-    public static function format(Contracts\Entity $entity, Array $data)
+    public static function wrap(Contracts\Entity $entity, Array $data)
     {
         $formatted = [
             '_id' => $data['_id'],
@@ -377,7 +381,7 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
             $formatted[$name] = $value;
         }
 
-        return $formatted;
+        return new Record($formatted);
     }
 
 
@@ -461,7 +465,6 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
         /** @var Contracts\Validator $validator */
         $validator = call_user_func($this->validatorCallback, $entity);
 
-
         // Validate the data
         $values = $validator->validateUpdate($id, $data);
 
@@ -476,39 +479,41 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
     }
 
     /**
-     * @param array $current
+     * @param Contracts\Record $current
      * @param array $data
      * @throws RecordNotChanged
      */
-    protected function checkChanges(Array $current, Array $data)
+    protected function checkChanges(Contracts\Record $current, Array $data)
     {
         if(!$this->hasChanges($current, $data)) {
             throw new RecordNotChanged(sprintf('There provided data "%s" has no changes against "%s"',
-                json_encode($data), json_encode($current)));
+                json_encode($data), json_encode($current->data())));
         }
     }
 
     /**
-     * @param array $current
+     * @param Contracts\Record $current
      * @param array $data
      * @return bool
      */
-    public function hasChanges(Array $current, Array $data)
+    public function hasChanges(Contracts\Record $current, Array $data)
     {
+        $values = $current->data();
+
         foreach ($data as $key => $value) {
-            if(!array_key_exists($key, $current)) return true;
-            if($current[$key] !== $value) return true;
+            if(!array_key_exists($key, $values)) return true;
+            if($values[$key] !== $value) return true;
         }
 
         return false;
     }
 
     /**
-     * @param array $current
+     * @param Contracts\Record $current
      * @param array $data
      * @return array
      */
-    public function getChanges(Array $current, Array $data)
+    public function getChanges(Contracts\Record $current, Array $data)
     {
         return array_filter($data, function($value, $key) use ($current) {
 
@@ -604,7 +609,7 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
             ]
         ]);
 
-        return $latest['_version'] + 1;
+        return $latest ? $latest->version() + 1 : 1;
     }
 
     /**

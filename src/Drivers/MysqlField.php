@@ -1,5 +1,6 @@
 <?php namespace Boyhagemann\Storage\Drivers;
 
+use Boyhagemann\Storage\Collection;
 use Boyhagemann\Storage\Contracts;
 use Boyhagemann\Storage\Exceptions\Invalid;
 use Boyhagemann\Storage\Field;
@@ -96,19 +97,20 @@ class MysqlField implements Contracts\FieldRepository, Contracts\Validatable
     /**
      * @param array $query
      * @param array $options
-     * @return array
+     * @return Collection
      */
     public function find(Array $query = [], Array $options = [])
     {
         $rows = $this->buildFindQuery($query, $options)->fetchRows();
+        $fields = array_map([$this, 'wrap'], $rows);
 
-        return array_map([$this, 'wrap'], $rows);
+        return new Collection($fields);
     }
 
     /**
      * @param array $query
      * @param array $options
-     * @return array|null
+     * @return Contracts\Field|null
      */
     public function first(Array $query = [], Array $options = [])
     {
@@ -120,7 +122,7 @@ class MysqlField implements Contracts\FieldRepository, Contracts\Validatable
     /**
      * @param $id
      * @param $version
-     * @return []
+     * @return Contracts\Field
      */
     public function get($id, $version = null)
     {

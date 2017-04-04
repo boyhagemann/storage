@@ -1,6 +1,6 @@
 <?php namespace Boyhagemann\Storage\Contracts;
 
-interface Entity
+interface Entity extends Arrayable
 {
     /**
      * @return string
@@ -26,10 +26,5 @@ interface Entity
      * @return Field[]
      */
     public function fields();
-
-    /**
-     * @return array
-     */
-    public function toArray();
 
 }

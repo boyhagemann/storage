@@ -10,6 +10,11 @@ interface EntityRepository
     public function get($id, $version = null);
     public function getVersions($id, Array $options = []);
 
+    /**
+     * @param array $query
+     * @param array $options
+     * @return Collection
+     */
     public function find(Array $query = [], Array $options = []);
     public function first(Array $query = [], Array $options = []);
 

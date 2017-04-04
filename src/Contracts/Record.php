@@ -1,17 +1,25 @@
 <?php namespace Boyhagemann\Storage\Contracts;
 
-interface Record
+interface Record extends Arrayable 
 {
-    public function find(Entity $entity, Array $query = [], Array $options = []);
-    public function first(Entity $entity, Array $query = [], Array $options = []);
-    public function get(Entity $entity, $id, Array $options = []);
+    /**
+     * @return string
+     */
+    public function uuid();
 
-    public function insert(Entity $entity, Array $data, Array $options = []);
-    public function upsert(Entity $entity, $id, Array $data, Array $options = []);
+    /**
+     * @return string
+     */
+    public function id();
 
-    public function update(Entity $entity, $id, Array $data, Array $options = []);
-    public function updateWhere(Entity $entity, Array $query, Array $data, Array $options = []);
+    /**
+     * @return int
+     */
+    public function version();
 
-    public function delete(Entity $entity, $id, Array $options = []);
-    public function deleteWhere(Entity $entity, Array $query, Array $options = []);
+    /**
+     * @return array
+     */
+    public function data();
+
 }
