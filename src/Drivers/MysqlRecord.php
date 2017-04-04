@@ -159,7 +159,6 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
         }, $where);
         array_unshift($whereParams, $whereString);
 
-//        dd($whereParams);
         if($where) {
             call_user_func_array([$q, 'where'], $whereParams);
         }
@@ -194,7 +193,6 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
                         'path' => sprintf('(%s) IN (?)', '`id`'),
                         'value' => (array) $statement[2],
                     ];
-//                    dd($where);
                     break;
 
                 default:
@@ -473,11 +471,8 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
         // We only need the changed values
         $changes = $this->getChanges($current, $values);
 
-        // Get the incremented version
-        $version = $this->getNextVersion($current);
-
         // Commit to the storage
-        $this->store($entity, $id, $changes, $version);
+        $this->store($entity, $id, $changes);
     }
 
     /**
@@ -515,9 +510,11 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
      */
     public function getChanges(Array $current, Array $data)
     {
-        $values = array_intersect_key($current, $data);
+        return array_filter($data, function($value, $key) use ($current) {
 
-        return array_diff($data, $values);
+            if(!array_key_exists($key, $current) || $current[$key] !== $value) return true;
+
+        }, ARRAY_FILTER_USE_BOTH);
     }
 
     /**
@@ -555,11 +552,13 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
      * @param Entity $entity
      * @param string $id
      * @param array $data
-     * @param int $version
      * @return array
      */
-    protected function store(Contracts\Entity $entity, $id, Array $data, $version = 1)
+    protected function store(Contracts\Entity $entity, $id, Array $data)
     {
+        // Get the incremented version
+        $version = $this->getNextVersion($entity, $id);
+
         // Update the version of the record
         $this->insertRecord($id, $entity->id(), $version);
 
@@ -579,11 +578,8 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
 
     public function delete(Contracts\Entity $entity, $id, Array $options = [])
     {
-        // Get the current record
-        $current = $this->get($entity, $id, $options);
-
         // Get the incremented version
-        $version = $this->getNextVersion($current);
+        $version = $this->getNextVersion($entity, $id);
 
         // Update the version of the record
         $this->insertRecord($id, $entity->id(), $version, 1);
@@ -595,12 +591,20 @@ class MysqlRecord implements Contracts\Record, Contracts\Validatable
     }
 
     /**
-     * @param array $record
-     * @return int
+     * @param Entity $entity
+     * @param $id
+     * @return mixed
      */
-    protected function getNextVersion(Array $record)
+    protected function getNextVersion(Entity $entity, $id)
     {
-        return $record['_version'] + 1;
+        // Get the latest record to get the version number
+        $latest = $this->first($entity, [
+            'and' => [
+                ['_id', '=', $id],
+            ]
+        ]);
+
+        return $latest['_version'] + 1;
     }
 
     /**
