@@ -56,7 +56,7 @@ class RecordValidator implements Contracts\Validator
                 break;
 
             case 'json':
-                $element->json();
+                $element->isArray();
                 break;
 
             case 'number':
