@@ -15,9 +15,11 @@
 DROP TABLE IF EXISTS `_entity`;
 CREATE TABLE IF NOT EXISTS `_entity` (
   `uuid` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `id` varchar(255) NOT NULL,
   `version` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`uuid`)
+  PRIMARY KEY (`uuid`),
+  KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._entity: ~0 rows (ongeveer)
@@ -30,6 +32,7 @@ INSERT INTO `_entity` (`uuid`, `id`, `version`) VALUES
 DROP TABLE IF EXISTS `_field`;
 CREATE TABLE IF NOT EXISTS `_field` (
   `uuid` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `id` varchar(255) NOT NULL,
   `entity` varchar(255) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
@@ -44,7 +47,8 @@ CREATE TABLE IF NOT EXISTS `_field` (
   KEY `id` (`id`),
   KEY `order` (`order`),
   KEY `required` (`required`),
-  KEY `collection` (`collection`)
+  KEY `collection` (`collection`),
+  KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._field: ~5 rows (ongeveer)
@@ -61,6 +65,7 @@ INSERT INTO `_field` (`uuid`, `id`, `entity`, `name`, `version`, `order`, `type`
 DROP TABLE IF EXISTS `_record`;
 CREATE TABLE IF NOT EXISTS `_record` (
   `uuid` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `id` varchar(255) NOT NULL,
   `entity` varchar(255) NOT NULL,
   `version` int(11) NOT NULL DEFAULT '0',
@@ -72,7 +77,8 @@ CREATE TABLE IF NOT EXISTS `_record` (
   KEY `id` (`id`),
   KEY `deleted` (`deleted`),
   KEY `conditions` (`conditions`),
-  KEY `conditions_active` (`conditions_active`)
+  KEY `conditions_active` (`conditions_active`),
+  KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._record: ~5 rows (ongeveer)
@@ -89,6 +95,7 @@ INSERT INTO `_record` (`uuid`, `id`, `entity`, `version`, `deleted`, `conditions
 DROP TABLE IF EXISTS `_value`;
 CREATE TABLE IF NOT EXISTS `_value` (
   `uuid` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `record` varchar(255) NOT NULL,
   `field` varchar(255) NOT NULL,
   `version` int(11) NOT NULL,
@@ -98,7 +105,8 @@ CREATE TABLE IF NOT EXISTS `_value` (
   KEY `field` (`field`),
   KEY `version` (`version`),
   KEY `record` (`record`),
-  KEY `conditions` (`conditions`)
+  KEY `conditions` (`conditions`),
+  KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Dumpen data van tabel komparu_dev._value: ~9 rows (ongeveer)
