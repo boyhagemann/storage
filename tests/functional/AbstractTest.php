@@ -61,21 +61,22 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         ]);
 
         $subset = [
-            'id' => 'some-unique-id',
-            'name' => 'my-field',
-            'entity' => 'my-entity',
-            'order' => 0,
-            'type' => 'string',
+            [
+                'id' => 'some-unique-id',
+                'name' => 'my-field',
+                'entity' => 'my-entity',
+                'order' => 0,
+                'type' => 'string',
+            ]
         ];
 
         $collection = $this->fields->find([
             ['entity', '=', 'my-entity'],
-        ]);
+        ])->toArray();
 
-
+        $this->assertArraySubset($subset, $collection);
         $this->assertCount(1, $collection);
-        $this->assertInstanceOf(\Boyhagemann\Storage\Contracts\Field::class, $collection[0]);
-        $this->assertArraySubset($subset, $collection[0]->toArray());
+        $this->assertResultHasExactKeys($collection[0], ['id', 'entity', 'name', 'order', 'type', 'required', 'collection']);
     }
 
     public function testGetNonExistingEntityThrowsException()
@@ -93,9 +94,9 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
     public function testFindLatestRecords()
     {
         $entity = $this->entities->get('resource1');
-        $collection = $this->driver->find($entity, [], []);
+        $collection = $this->driver->find($entity, [], [])->toArray();
 
-        $this->assertSame([
+        $subset = [
             [
                 '_id' => 'record1',
                 '_version' => 2,
@@ -107,7 +108,11 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
                     'second',
                 ],
             ],
-        ], $collection->toArray());
+        ];
+
+        $this->assertArraySubset($subset, $collection);
+        $this->assertCount(1, $collection);
+        $this->assertResultHasExactKeys($collection[0]);
     }
 
     public function testFindRecordsWithVersion()
@@ -115,9 +120,9 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         $entity = $this->entities->get('resource1');
         $collection = $this->driver->find($entity, [], [
             'version' => 1
-        ]);
+        ])->toArray();
 
-        $this->assertSame([
+        $subset = [
             [
                 '_id' => 'record1',
                 '_version' => 2,
@@ -137,7 +142,11 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
                 'label' => 'bar',
                 'uses' => null,
             ],
-        ], $collection->toArray());
+        ];
+
+        $this->assertArraySubset($subset, $collection);
+        $this->assertCount(2, $collection);
+        $this->assertResultHasExactKeys($collection[0]);
     }
 
     /**
@@ -179,9 +188,10 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             ],
         ], [
             'version' => 1
-        ]);
+        ])->toArray();
 
-        $this->assertSame([
+
+        $subset = [
             [
                 '_id' => 'record2',
                 '_version' => 2,
@@ -190,7 +200,11 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
                 'label' => 'bar',
                 'uses' => null,
             ],
-        ], $collection->toArray());
+        ];
+
+        $this->assertArraySubset($subset, $collection);
+        $this->assertCount(1, $collection);
+        $this->assertResultHasExactKeys($collection[0]);
     }
 
     public function testFetchLatestRecord()
@@ -202,7 +216,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             ],
         ]);
 
-        $this->assertSame([
+        $this->assertArraySubset([
             '_id' => 'record1',
             '_version' => 2,
             'id' => 'id1',
@@ -213,6 +227,8 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
                 'second',
             ],
         ], $record->toArray());
+
+        $this->assertResultHasExactKeys($record->toArray());
     }
 
     public function testFetchRecordWithVersion()
@@ -226,7 +242,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             'version' => 1
         ]);
 
-        $this->assertSame([
+        $this->assertArraySubset([
             '_id' => 'record2',
             '_version' => 2,
             'id' => 'id2',
@@ -234,6 +250,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             'label_old' => 'bar',
             'uses' => null,
         ], $record->toArray());
+
     }
 
     public function testFetchDeletedRecordWithResourceVersion()
@@ -261,7 +278,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             ],
         ]);
 
-        $this->assertSame([
+        $this->assertArraySubset([
             '_id' => 'record1',
             '_version' => 3,
             'id' => 'id1',
@@ -272,6 +289,8 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
                 'second',
             ],
         ], $record->toArray());
+
+        $this->assertResultHasExactKeys($record->toArray());
     }
 
     public function testGetRecord()
@@ -279,7 +298,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         $entity = $this->entities->get('resource1');
         $record = $this->driver->get($entity, 'record1');
 
-        $this->assertSame([
+        $this->assertArraySubset([
             '_id' => 'record1',
             '_version' => 2,
             'id' => 'id1',
@@ -290,6 +309,8 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
                 'second',
             ],
         ], $record->toArray());
+
+        $this->assertResultHasExactKeys($record->toArray());
     }
 
     public function testGetRecordThrowsExceptionWhenNotFound()
@@ -312,7 +333,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             'some_fake_field' => 'must be skipped',
         ]);
 
-        $expected = [
+        $subset = [
             [
                 '_id' => 'record1',
                 '_version' => 2,
@@ -336,9 +357,12 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
         $collection = $this->driver->find($entity, [], [
             'order' => 'id',
-        ]);
+        ])->toArray();
 
-        $this->assertSame($expected, $collection->toArray());
+        $this->assertArraySubset($subset, $collection);
+        $this->assertCount(2, $collection);
+        $this->assertResultHasExactKeys($collection[0]);
+
     }
 
     public function testInsertRecordWithInvalidDataThrowsException()
@@ -358,7 +382,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             'label' => 'Updated'
         ]);
 
-        $expected = [
+        $subset = [
             [
                 '_id' => 'record1',
                 '_version' => 3,
@@ -374,9 +398,11 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
         $collection = $this->driver->find($entity, [], [
             'order' => 'id',
-        ]);
+        ])->toArray();
 
-        $this->assertSame($expected, $collection->toArray());
+        $this->assertArraySubset($subset, $collection);
+        $this->assertCount(1, $collection);
+        $this->assertResultHasExactKeys($collection[0]);
     }
 
     public function testUpdateRecordThrowsExceptionIfDataIsNotChanged()
@@ -390,6 +416,9 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
         ]);
     }
 
+    /**
+     * @group test
+     */
     public function testUpsertWithExistingRecord()
     {
         $entity = $this->entities->get('resource1');
@@ -398,7 +427,7 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
             'label' => 'Updated'
         ]);
 
-        $expected = [
+        $subset = [
             [
                 '_id' => 'record1',
                 '_version' => 3,
@@ -414,10 +443,19 @@ abstract class AbstractTest extends PHPUnit_Framework_TestCase
 
         $collection = $this->driver->find($entity, [], [
             'order' => 'id',
-        ]);
+        ])->toArray();
 
-        $this->assertSame($expected, $collection->toArray());
+        $this->assertArraySubset($subset, $collection);
+        $this->assertCount(1, $collection);
+        $this->assertResultHasExactKeys($collection[0]);
+    }
 
+    /**
+     * @param array $data
+     */
+    protected function assertResultHasExactKeys(Array $data, Array $keys = ['_id', '_version', '_created_at', 'id', 'name', 'label', 'uses'])
+    {
+        $this->assertSame(array_keys($data), $keys);
     }
 
     public function testUpsertWithNewRecord()

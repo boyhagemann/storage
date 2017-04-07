@@ -92,15 +92,25 @@ class MysqlRecord implements Contracts\RecordRepository, Contracts\Validatable
             ->orderBy('`version`', 'desc')
             ->limit(1);
 
+        // Show the creation date of the record
+        $createdAtField = $this->builder->select()
+            ->from('_record')
+            ->field('`created_at`')
+            ->where('`id` = r.`id`')
+            ->orderBy('`version`', 'desc')
+            ->limit(1);
+
         // Add the optional conditions to the query, only if we have any conditions
         $conditionalWhereDeleted = $this->wrapQueryInCondition($whereDeleted, $conditions);
         $conditionalVersionField = $this->wrapQueryInCondition($versionField, $conditions);
+        $conditionalCreatedAtField = $this->wrapQueryInCondition($createdAtField, $conditions);
 
         // Only fetch the records that are not deleted
         $q = $this->builder->select()
             ->from('r', '_record')
             ->field('id', '_id')
             ->field($conditionalVersionField, '_version')
+            ->field($conditionalCreatedAtField, '_created_at')
             ->where(sprintf('(%s) = ?', (string) $conditionalWhereDeleted), 0)
             ->groupBy('r.`id`');
 
@@ -360,6 +370,7 @@ class MysqlRecord implements Contracts\RecordRepository, Contracts\Validatable
         $formatted = [
             '_id' => $data['_id'],
             '_version' => (int) $data['_version'],
+            '_created_at' => $data['_created_at'],
         ];
 
         foreach($entity->fields() as $field) {

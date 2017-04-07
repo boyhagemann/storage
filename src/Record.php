@@ -12,6 +12,11 @@ class Record extends \ArrayObject implements Contracts\Record
         return $this->offsetGet('_uuid');
     }
 
+    public function createdAt()
+    {
+        return $this->offsetGet('_created_at');
+    }
+
     public function id()
     {
         return $this->offsetGet('_id');
@@ -24,7 +29,7 @@ class Record extends \ArrayObject implements Contracts\Record
 
     public function data()
     {
-        return array_diff_key($this->getArrayCopy(), array_flip(['_uuid', '_id', '_version']));
+        return array_diff_key($this->getArrayCopy(), array_flip(['_uuid', '_id', '_version', '_created_at']));
     }
 
     public function toArray()
